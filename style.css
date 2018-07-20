@@ -1,0 +1,107 @@
+* {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+#drop {
+  position: relative;
+  width: 400px;
+  height: 200px;
+  border: 5px dotted black;
+  float: left;
+  margin: 10px;
+}
+
+#drop > p {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: gray;
+}
+
+#drop input[type="file"] {
+  position: absolute;
+  width: 100%;
+  height: 200px;
+  opacity: 0;
+  cursor: pointer;
+}
+
+output {
+  display: block;
+  width: 500px;
+  float: left;
+  margin: 20px 10px;
+}
+
+output > p {
+  margin-left: 3em;
+}
+
+output > .playerButton {
+  margin: 0 0 10px;
+}
+
+output > .playerButton:not(.disabled) {
+  cursor: pointer;
+}
+
+.play {
+  width: 20px;
+  height: 20px;
+}
+
+.play::before {
+  position: absolute;
+  content: "";
+  transform: translateX(1.35px);
+  display: block;
+  border-style: solid;
+  border-width: 10px 0 10px 17.3px;
+  border-color: transparent transparent transparent gray;
+}
+
+.play.disabled::before {
+  border-color: transparent transparent transparent black;
+}
+
+.play:not(.disabled):hover::before {
+  border-color: transparent transparent transparent black;
+}
+
+.stop {
+  width: 20px;
+  height: 20px;
+}
+
+.stop::before {
+  position: absolute;
+  content: "";
+  transform: translateX(1px);
+  display: block;
+  width: 5px;
+  height: 20px;
+  background: gray;
+}
+
+.stop::after {
+  position: absolute;
+  content: "";
+  transform: translateX(9px);
+  display: block;
+  width: 5px;
+  height: 20px;
+  background: gray;
+}
+
+.stop.disabled::before, .stop.disabled::after {
+  background: black;
+}
+
+.stop:not(.disabled):hover::before, .stop:not(.disabled):hover::after {
+  background: black;
+}
