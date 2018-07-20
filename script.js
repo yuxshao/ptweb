@@ -1,3 +1,4 @@
+// Based off http://codepen.io/petamoriken/pen/JGWQOE/?editors=001
 "use strict";
 
 // AudioContext
