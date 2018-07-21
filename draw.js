@@ -4,28 +4,36 @@ const canvas = document.getElementById('player');
 const ctx = canvas.getContext('2d');
 
 let Player = function () {
+  this.startTime = null;
+  this.audioCtx = null;
   this.evels = { unitNum: 0, evels: []};
   this.master = null;
   this.measureWidth = 192;
 }
 
-Player.prototype.draw = function (now) {
+Player.prototype.draw = function () {
   // - back -
   ctx.fillStyle = "#000010";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  // time offset
+  let beatOffset = (this.audioCtx.currentTime - this.startTime) *
+    this.master.beatTempo / 60;
+  // beatOffset = Math.floor(beatOffset);
+  let xOffset = beatOffset / this.master.beatNum * this.measureWidth;
+  ctx.save();
+  ctx.translate(-xOffset, 0);
+
   // - rulers -
   // beat
   ctx.fillStyle = "#808080";
-  for (let i = 0; i < canvas.width; i += this.measureWidth / this.master.beatNum) {
+  for (let i = 0; i < canvas.width; i += this.measureWidth / this.master.beatNum)
     ctx.fillRect(i, 0, 1, canvas.height);
-  }
 
   // measure
   ctx.fillStyle = "#F0F0F0";
-  for (let i = 0; i < canvas.width; i += this.measureWidth) {
-    ctx.fillRect(i * this.measureWidth, 0, 1, canvas.height);
-  }
+  for (let i = 0; i < canvas.width; i += this.measureWidth)
+    ctx.fillRect(i, 0, 1, canvas.height);
 
   // - unit rows -
   ctx.fillStyle = "#400070";
@@ -49,12 +57,14 @@ Player.prototype.draw = function (now) {
     ctx.restore();
     // unit_no, value, clock
   }
+
+  ctx.restore();
 }
 
 Player.prototype.drawContinuously = function () {
   let k = this;
   function f(now) {
-    k.draw(now);
+    k.draw();
     window.requestAnimationFrame(f);
   }
   f(performance.now());

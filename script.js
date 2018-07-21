@@ -8,7 +8,7 @@ const ctx = new (window.AudioContext || window.webkitAudioContext)();
 
 // Pxtone initialize
 const pxtone = new Pxtone();
-pxtone.decoder = pxtnDecoder;
+pxtone.decoder = new Worker("./pxtnDecoder.js");
 
 // set decodePxtoneData to AudioContext
 ctx.decodePxtoneStream = pxtone.decodePxtoneStream.bind(pxtone, ctx);
@@ -43,7 +43,6 @@ async function reader$onload() {
   let {stream, master, evels, data} = await ctx.decodePxtoneStream(this.result);
   MyPlayer.evels = evels;
   MyPlayer.master = master;
-  MyPlayer.drawContinuously();
 
   pxtnTitle.innerHTML = escapeHTML(data.title) || "no name";
   pxtnComment.innerHTML = escapeHTML(data.comment).replace(/[\n\r]/g, "<br>") || "no comment";
@@ -54,8 +53,8 @@ async function reader$onload() {
   let buffer = await stream.next(BUFFER_DURATION);
   let src = ctx.createBufferSource();
   src.buffer = buffer;
-  // if 1st buffer is scheduled exactly at currentTime is starts slightly late.
-  // causing overlap. so, delaying a bit avoids overlap.
+  // if 1st buffer is scheduled exactly at currentTime it starts slightly late,
+  // causing overlap with 2nd buffer. so, delaying a bit avoids overlap.
   let time = ctx.currentTime + 0.01;
   src.start(time);
   src.connect(ctx.destination);
@@ -67,6 +66,10 @@ async function reader$onload() {
     src.connect(ctx.destination);
     prev.onended = (_e) => nextChunk(time + BUFFER_DURATION, src);
   })(time + BUFFER_DURATION, src);
+
+  MyPlayer.startTime = time + 0.01;
+  MyPlayer.audioCtx = ctx;
+  MyPlayer.drawContinuously();
 }
 
 // input Pxtone Collage file
