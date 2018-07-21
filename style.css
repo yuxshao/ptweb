@@ -40,7 +40,7 @@ output {
   float: left;
   padding: 20px;
   box-sizing: border-box;
-  margin: 10px 10px 0px 0px;
+  margin: 10px 10px 10px 0px;
 }
 
 output > p {
