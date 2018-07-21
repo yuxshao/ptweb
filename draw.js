@@ -32,7 +32,12 @@ Player.prototype.draw = function () {
 
   // time offset
   let currentTime = this.audioCtx.currentTime - this.startTime;
-  let currentBeat = currentTime * this.master.beatTempo / 60;
+  let currentBeat = (() => {
+    let beat = currentTime * this.master.beatTempo / 60;
+    let repeatBeat = this.master.repeatMeas * this.master.beatNum;
+    let lastBeat = this.master.lastMeas * this.master.beatNum;
+    return (beat - repeatBeat) % (lastBeat - repeatBeat) + repeatBeat;
+  })();
   let currentClock = currentBeat * this.master.beatClock;
   let playX = middleSnap(currentBeat / this.master.beatNum) * this.measureWidth;
 
