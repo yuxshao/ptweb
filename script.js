@@ -1,6 +1,8 @@
 // Based off http://codepen.io/petamoriken/pen/JGWQOE/?editors=001
 "use strict";
 
+import {MyPlayer} from "./draw.js"
+
 // AudioContext
 const ctx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -38,7 +40,11 @@ const escapeHTML = (() => {
 const BUFFER_DURATION = 1;
 
 async function reader$onload() {
-  let {stream, data} = await ctx.decodePxtoneStream(this.result);
+  let {stream, master, evels, data} = await ctx.decodePxtoneStream(this.result);
+  MyPlayer.evels = evels;
+  MyPlayer.master = master;
+  MyPlayer.drawContinuously();
+
   pxtnTitle.innerHTML = escapeHTML(data.title) || "no name";
   pxtnComment.innerHTML = escapeHTML(data.comment).replace(/[\n\r]/g, "<br>") || "no comment";
 
@@ -75,3 +81,4 @@ file.addEventListener("change", () => {
   reader.addEventListener("load", reader$onload);
   reader.readAsArrayBuffer(pxtnFile);
 });
+

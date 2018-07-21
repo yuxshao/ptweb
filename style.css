@@ -11,6 +11,7 @@
   border: 5px dotted black;
   float: left;
   margin: 10px;
+  box-sizing: border-box;
 }
 
 #drop > p {
@@ -33,9 +34,13 @@
 
 output {
   display: block;
-  width: 500px;
+  width: 300px;
+  height: 200px;
+  border: 5px dotted black;
   float: left;
-  margin: 20px 10px;
+  padding: 20px;
+  box-sizing: border-box;
+  margin: 10px 10px 0px 0px;
 }
 
 output > p {
@@ -104,4 +109,8 @@ output > .playerButton:not(.disabled) {
 
 .stop:not(.disabled):hover::before, .stop:not(.disabled):hover::after {
   background: black;
+}
+
+canvas#player {
+  margin:10px;
 }
