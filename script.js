@@ -48,7 +48,9 @@ async function reader$onload() {
   let buffer = await stream.next(BUFFER_DURATION);
   let src = ctx.createBufferSource();
   src.buffer = buffer;
-  let time = ctx.currentTime;
+  // if 1st buffer is scheduled exactly at currentTime is starts slightly late.
+  // causing overlap. so, delaying a bit avoids overlap.
+  let time = ctx.currentTime + 0.01;
   src.start(time);
   src.connect(ctx.destination);
   (async function nextChunk(time, prev) {
