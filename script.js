@@ -19,6 +19,7 @@ ctx.decodePxtoneStream = pxtone.decodePxtoneStream.bind(pxtone, ctx);
 // DOM
 const file = document.querySelector("#drop > input[type='file']");
 
+const button = document.querySelector(".playerButton");
 const [pxtnName, pxtnTitle, pxtnComment] = [document.querySelector("output > .name"), document.querySelector("output > .title"), document.querySelector("output > .comment")];
 
 // http://qiita.com/noriaki/items/4bfef8d7cf85dc1035b3
@@ -45,6 +46,9 @@ const BUFFER_DURATION = 1.6;
 var audioSources = [];
 // to indicate not to schedule next chunk when source is stopped
 function stopAudio() {
+  button.classList.remove("stop");
+  button.classList.add("play");
+  button.classList.add("disabled");
   for (let src of audioSources) { src.onended = () => null; src.stop(); }
   ctx.suspend();
 }
@@ -64,7 +68,7 @@ async function reader$onload() {
   src.buffer = buffer;
   // if 1st buffer is scheduled exactly at currentTime it starts slightly late,
   // causing overlap with 2nd buffer. so, delaying a bit avoids overlap.
-  let time = ctx.currentTime + 0.02;data
+  let time = ctx.currentTime + 0.25;
   src.start(time);
   src.connect(ctx.destination);
   (async function nextChunk(time, prev) {
@@ -81,13 +85,37 @@ async function reader$onload() {
     }
   })(time + BUFFER_DURATION, src);
 
-  MyPlayer.startTime = time + 0.01;
-  MyPlayer.units = units;
+  MyPlayer.startTime = time;
+  MyPlayer.setUnits(units);
   MyPlayer.evels = evels;
   MyPlayer.master = master;
-  await ctx.resume();
+  button.classList.remove("disabled");
 }
 
+const playerStateChange = (() => {
+  let isPlaying = false;
+  return () => {
+    if(button.classList.contains("disabled"))
+      return;
+    // play
+    if(!isPlaying) {
+      isPlaying = true;
+      ctx.resume();
+      button.classList.remove("play");
+      button.classList.add("stop");
+    // stop
+    } else {
+      isPlaying = false;
+      ctx.suspend();
+      button.classList.remove("stop");
+      button.classList.add("play");
+    }
+  };
+  
+})();
+
+// button
+button.addEventListener("click", playerStateChange);
 // input Pxtone Collage file
 file.addEventListener("change", () => {
   const pxtnFile = file.files[0];

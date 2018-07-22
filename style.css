@@ -4,10 +4,14 @@
   border: 0;
 }
 
+html, body { width:100%; height:100%; }
+
+canvas { display:block; margin:2px auto; }
+
 #drop {
   position: relative;
-  width: 400px;
-  height: 200px;
+  width: 100px;
+  height: 40px;
   border: 5px dotted black;
   float: left;
   margin: 10px;
@@ -34,9 +38,10 @@
 
 output {
   display: block;
-  width: 300px;
+  width:100%;
+  /* width: 800px;
   height: 200px;
-  border: 5px dotted black;
+  border: 5px dotted black; */
   float: left;
   padding: 20px;
   box-sizing: border-box;
@@ -47,11 +52,7 @@ output > p {
   margin-left: 3em;
 }
 
-output > .playerButton {
-  margin: 0 0 10px;
-}
-
-output > .playerButton:not(.disabled) {
+.playerButton:not(.disabled) {
   cursor: pointer;
 }
 
@@ -109,8 +110,4 @@ output > .playerButton:not(.disabled) {
 
 .stop:not(.disabled):hover::before, .stop:not(.disabled):hover::after {
   background: black;
-}
-
-canvas#player {
-  margin:10px;
 }

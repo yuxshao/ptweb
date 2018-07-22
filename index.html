@@ -9,26 +9,28 @@
 <script src="pxtnDecoder.js"></script>
 <script src="Pxtone.js"></script>
 <body>
+<canvas id="player" onload="this.width = window.innerWidth" height="832"></canvas>
 <div id="drop">
-  <p>
-    Drag and Drop<br>
-    Pxtone Collage Project file (.ptcop)<br>
-    or<br>
-    Pxtone Tune file (.pttune)<br>
-    Here
-  </p>
+  <p>Load file</p>
   <input type="file" accept=".ptcop,.pttune">
 </div>
-    
+<div class="playerButton play" style="float:left; margin:10px; padding:10px"></div>
 <output>
   file name:
   <p class="name">&nbsp;</p>
   title:
   <p class="title">&nbsp;</p>
-  comment:
-  <p class="comment">&nbsp;</p>
+  comment:<br />
+  <tt class="comment">&nbsp;</tt>
 </output>
-<div style="float:left; margin:10px; padding:2px; outline:1px solid black"><canvas id="player" width="700" height="512"></canvas></div>
 <script src="script.js" type="module"></script>
+<script>
+  (function () {
+    const canvas = document.getElementById('player');
+    function resize() { canvas.width = window.innerWidth-16; }
+    window.addEventListener('resize', resize, false);
+    resize();
+  })();
+</script>
 </body>
 </html>

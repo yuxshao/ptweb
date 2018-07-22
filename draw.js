@@ -46,11 +46,17 @@ function drawNum(ctx, res, num, xr, y) {
 let Player = function () {
   this.startTime = null;
   this.audioCtx = null;
-  this.units = [""];
+  this.setUnits([""]);
   this.evels = [];
   this.master = { beatNum: 4, beatTempo: 120, beatClock: 480, measNum: 1, repeatMeas: 0, lastMeas: 0 };
   this.measureWidth = 192;
   this.unitOffsetY = 32;
+}
+
+Player.prototype.setUnits = function (units) {
+  this.units = units;
+  let l = Math.ceil(units.length/10) * 10;
+  canvas.height = unitbars.regular_rect.h * l + unitbars.top_rect.h;
 }
 
 function drawUnitNote(ctx, x, y, w) {
@@ -70,11 +76,11 @@ Player.prototype.drawUnits = function () {
     drawImageRect(ctx, unitbars, unitbars.side_rect, 0, unitbars.side_rect.h * i);
   ctx.fillStyle = "#FFFFFF";
   ctx.textBaseline = "middle";
-  ctx.textAlign = "right";
+  ctx.textAlign = "left";
   for (i = 0; i < this.units.length; ++i) {
     drawImageRect(ctx, unitbars, unitbars.regular_rect, unitbars.side_rect.w, i*unitbars.regular_rect.h);
     ctx.fillText(this.units[i],
-      unitbars.side_rect.w + unitbars.regular_rect.w - 2,
+      unitbars.side_rect.w + 5,
       (i + 0.5) * unitbars.regular_rect.h);
   }
   for ( ; i < 50; ++i)
@@ -82,30 +88,17 @@ Player.prototype.drawUnits = function () {
   ctx.translate(0, -this.unitOffsetY);
 }
 
-Player.prototype.draw = function () {
-  // calculate time offset
-  let curr = { time: this.audioCtx.currentTime - this.startTime };
-  curr.beat = (() => {
-    let beat = curr.time * this.master.beatTempo / 60;
-    let lastBeat = (this.master.lastMeas || this.master.measNum) * this.master.beatNum;
-    if (beat < lastBeat) return beat;
-    let repeatBeat = this.master.repeatMeas * this.master.beatNum;
-    return (beat - repeatBeat) % (lastBeat - repeatBeat) + repeatBeat;
-  })();
-  curr.clock = curr.beat * this.master.beatClock;
+Player.prototype.drawTimeline = function (currBeat, canvas) {
+  let currClock = currBeat * this.master.beatClock;
 
   // - back -
   // global transform
-  ctx.fillStyle = "#000010";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.save();
-  ctx.translate(0, 1); // widget offset
   ctx.save(); // song position shift
   let shiftX = canvas.width/2;
   ctx.translate(shiftX, 0);
   // ctx.scale(2, 2);
 
-  let playX = middleSnap(curr.beat / this.master.beatNum) * this.measureWidth;
+  let playX = middleSnap(currBeat / this.master.beatNum) * this.measureWidth;
   ctx.translate(-playX, 0);
 
   let canvasOffsetX = playX - shiftX;
@@ -171,24 +164,46 @@ Player.prototype.draw = function () {
   for (let e of this.evels) {
     if (e.kind != "ON")
       continue;
-    if (e.clock <= curr.clock && e.clock + e.value > curr.clock) {
+    if (e.clock <= currClock && e.clock + e.value > currClock) {
       ctx.save();
       ctx.fillStyle = "#FFF000";
     }
     drawUnitNote(ctx, e.clock / clockPerPx, e.unit_no * 16 + 8 + this.unitOffsetY, e.value / clockPerPx);
-    if (e.clock <= curr.clock && e.clock + e.value > curr.clock) ctx.restore();
+    if (e.clock <= currClock && e.clock + e.value > currClock) ctx.restore();
   }
 
   // - playhead -
   ctx.save(); // playhead position
   ctx.fillStyle = "#FFFFFF";
-  ctx.translate(curr.clock / clockPerPx, 23);
+  ctx.translate(currClock / clockPerPx, 23);
   ctx.drawImage(playhead, -playhead.centre.x, -playhead.centre.y);
   ctx.fillRect(0, 0, 1, canvas.height);
   ctx.restore(); // playhead position
 
   ctx.restore(); // song position shift
+}
+Player.prototype.draw = function () {
+  // calculate time offset
+  let currBeat = (() => {
+    let currTime = this.audioCtx.currentTime - this.startTime;
+    let beat = currTime * this.master.beatTempo / 60;
+    let lastBeat = (this.master.lastMeas || this.master.measNum) * this.master.beatNum;
+    if (beat < lastBeat) return beat;
+    let repeatBeat = this.master.repeatMeas * this.master.beatNum;
+    return (beat - repeatBeat) % (lastBeat - repeatBeat) + repeatBeat;
+  })();
+  if (currBeat < 0) currBeat = 0;
 
+  ctx.fillStyle = "#000010";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.translate(0, 1); // widget offset
+
+  ctx.save();
+  let menuWidth = unitbars.regular_rect.w + unitbars.side_rect.w;
+  ctx.translate(menuWidth, 0);
+  this.drawTimeline(currBeat, { width: canvas.width - menuWidth, height: canvas.height });
+  ctx.restore();
   // ctx.scale(2, 2);
   this.drawUnits();
 
