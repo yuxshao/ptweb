@@ -5,6 +5,7 @@ import {MyPlayer} from "./draw.js"
 
 // AudioContext
 const ctx = new (window.AudioContext || window.webkitAudioContext)();
+ctx.suspend();
 
 // Pxtone initialize
 const pxtone = new Pxtone();
@@ -40,6 +41,7 @@ const escapeHTML = (() => {
 const BUFFER_DURATION = 1;
 
 async function reader$onload() {
+  await ctx.resume();
   let {stream, master, evels, data} = await ctx.decodePxtoneStream(this.result);
   MyPlayer.evels = evels;
   MyPlayer.master = master;
