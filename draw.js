@@ -9,12 +9,23 @@ numbers_green.src = './res/numbers_green.png';
 numbers_green.digit_w = 8;
 numbers_green.digit_h = 8;
 
+const flags = new Image(81, 16);
+flags.src = './res/flags.png';
+flags.top_rect    = { x: 0,  y: 0, w: 36, h: 8 };
+flags.last_rect   = { x: 45, y: 0, w: 35, h: 8 };
+flags.repeat_rect = { x: 0,  y: 8, w: 36, h: 8 };
+
+function drawImageRect(ctx, res, rect, x, y) {
+  ctx.drawImage(res, rect.x, rect.y, rect.w, rect.h, x, y, rect.w, rect.h);
+}
+
 function drawNum(ctx, res, num, xr, y) {
   if (num < 0) throw "cannot print negative number";
   do {
     let digit = num % 10;
     xr -= res.digit_w;
-    ctx.drawImage(res, res.digit_w * digit, 0, res.digit_w, res.digit_h,
+    ctx.drawImage(res,
+      res.digit_w * digit, 0, res.digit_w, res.digit_h,
       xr, y, res.digit_w, res.digit_h);
     num = (num - digit) / 10;
   }
@@ -88,6 +99,13 @@ Player.prototype.draw = function () {
     else
       ctx.fillStyle = "#400000";
     ctx.fillRect(box_left, 9, this.measureWidth, 16); // red bar
+
+    if (i + start == this.master.repeatMeas)
+      drawImageRect(ctx, flags, flags.repeat_rect, box_left, 9);
+    if (i + start == 0)
+      drawImageRect(ctx, flags, flags.top_rect, box_left, 9);
+    if (this.master.lastMeas && i + start == this.master.lastMeas)
+      drawImageRect(ctx, flags, flags.last_rect, box_left-flags.last_rect.w, 9);
   }
 
   start = canvasOffsetX;
