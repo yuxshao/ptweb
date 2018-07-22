@@ -6,6 +6,8 @@ import {MyPlayer} from "./draw.js"
 // AudioContext
 const ctx = new (window.AudioContext || window.webkitAudioContext)();
 ctx.suspend();
+MyPlayer.audioCtx = ctx;
+MyPlayer.drawContinuously();
 
 // Pxtone initialize
 const pxtone = new Pxtone();
@@ -41,7 +43,6 @@ const escapeHTML = (() => {
 const BUFFER_DURATION = 1;
 
 async function reader$onload() {
-  await ctx.resume();
   let {stream, master, evels, data} = await ctx.decodePxtoneStream(this.result);
   MyPlayer.evels = evels;
   MyPlayer.master = master;
@@ -57,7 +58,7 @@ async function reader$onload() {
   src.buffer = buffer;
   // if 1st buffer is scheduled exactly at currentTime it starts slightly late,
   // causing overlap with 2nd buffer. so, delaying a bit avoids overlap.
-  let time = ctx.currentTime + 0.01;
+  let time = ctx.currentTime + 0.02;
   src.start(time);
   src.connect(ctx.destination);
   (async function nextChunk(time, prev) {
@@ -70,8 +71,7 @@ async function reader$onload() {
   })(time + BUFFER_DURATION, src);
 
   MyPlayer.startTime = time + 0.01;
-  MyPlayer.audioCtx = ctx;
-  MyPlayer.drawContinuously();
+  await ctx.resume();
 }
 
 // input Pxtone Collage file

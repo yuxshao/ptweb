@@ -6,14 +6,17 @@ ctx.imageSmoothingEnabled = false;
 
 const numbers_green = new Image(80, 8);
 numbers_green.src = './res/numbers_green.png';
-numbers_green.digit_w = 8;
-numbers_green.digit_h = 8;
+numbers_green.digit_size = { x: 8, y: 8 };
 
 const flags = new Image(81, 16);
 flags.src = './res/flags.png';
 flags.top_rect    = { x: 0,  y: 0, w: 36, h: 8 };
 flags.last_rect   = { x: 45, y: 0, w: 35, h: 8 };
 flags.repeat_rect = { x: 0,  y: 8, w: 36, h: 8 };
+
+const playhead = new Image(9, 5);
+playhead.centre = { x: 4, y: 4 };
+playhead.src = './res/playhead.png';
 
 function drawImageRect(ctx, res, rect, x, y) {
   ctx.drawImage(res, rect.x, rect.y, rect.w, rect.h, x, y, rect.w, rect.h);
@@ -23,10 +26,10 @@ function drawNum(ctx, res, num, xr, y) {
   if (num < 0) throw "cannot print negative number";
   do {
     let digit = num % 10;
-    xr -= res.digit_w;
+    xr -= res.digit_size.x;
     ctx.drawImage(res,
-      res.digit_w * digit, 0, res.digit_w, res.digit_h,
-      xr, y, res.digit_w, res.digit_h);
+      res.digit_size.x * digit, 0, res.digit_size.x, res.digit_size.y,
+      xr, y, res.digit_size.x, res.digit_size.y);
     num = (num - digit) / 10;
   }
   while (num > 0);
@@ -35,8 +38,8 @@ function drawNum(ctx, res, num, xr, y) {
 let Player = function () {
   this.startTime = null;
   this.audioCtx = null;
-  this.evels = { unitNum: 0, evels: []};
-  this.master = null;
+  this.evels = { unitNum: 1, evels: []};
+  this.master = { beatNum: 4, beatTempo: 120, beatClock: 480, measNum: 1, repeatMeas: 0, lastMeas: 0 };
   this.measureWidth = 192;
 }
 
@@ -62,7 +65,7 @@ Player.prototype.draw = function () {
   curr.clock = curr.beat * this.master.beatClock;
 
   // - back -
-  ctx.save();
+  ctx.save(); // song position shift
   // global transform
   ctx.fillStyle = "#000010";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -100,6 +103,7 @@ Player.prototype.draw = function () {
       ctx.fillStyle = "#400000";
     ctx.fillRect(box_left, 9, this.measureWidth, 16); // red bar
 
+    // flags
     if (i + start == this.master.repeatMeas)
       drawImageRect(ctx, flags, flags.repeat_rect, box_left, 9);
     if (i + start == 0)
@@ -128,12 +132,8 @@ Player.prototype.draw = function () {
     ctx.fillRect(start, i*16 + 1 + unitOffsetY, canvas.width, 15);
   }
 
-  // - playhead -
-  let clockPerPx = this.master.beatClock * this.master.beatNum / this.measureWidth;
-  ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(curr.clock / clockPerPx, 0, 1, canvas.height);
-
   // notes
+  let clockPerPx = this.master.beatClock * this.master.beatNum / this.measureWidth;
   ctx.fillStyle = "#F08000";
   // TODO: use interval tree to get the relevant notes to render
   // else it lags on big things
@@ -148,7 +148,15 @@ Player.prototype.draw = function () {
     if (e.clock <= curr.clock && e.clock + e.value > curr.clock) ctx.restore();
   }
 
-  ctx.restore();
+  // - playhead -
+  ctx.save(); // playhead position
+  ctx.fillStyle = "#FFFFFF";
+  ctx.translate(curr.clock / clockPerPx, 23);
+  ctx.drawImage(playhead, -playhead.centre.x, -playhead.centre.y);
+  ctx.fillRect(0, 0, 1, canvas.height);
+  ctx.restore(); // playhead position
+
+  ctx.restore(); // song position shift
 }
 
 Player.prototype.drawContinuously = function () {
