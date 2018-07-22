@@ -21,6 +21,16 @@ function drawUnitNote(ctx, x, y, w) {
 function middleSnap(x) { return Math.floor(x) + 0.5; }
 
 Player.prototype.draw = function () {
+  // calculate time offset
+  let curr = { time: this.audioCtx.currentTime - this.startTime };
+  curr.beat = (() => {
+    let beat = curr.time * this.master.beatTempo / 60;
+    let repeatBeat = this.master.repeatMeas * this.master.beatNum;
+    let lastBeat = this.master.lastMeas * this.master.beatNum;
+    return (beat - repeatBeat) % (lastBeat - repeatBeat) + repeatBeat;
+  })();
+  curr.clock = curr.beat * this.master.beatClock;
+
   // - back -
   ctx.save();
   // global transform
@@ -30,23 +40,13 @@ Player.prototype.draw = function () {
   ctx.translate(shiftX, 0);
   ctx.scale(2, 2);
 
-  // time offset
-  let currentTime = this.audioCtx.currentTime - this.startTime;
-  let currentBeat = (() => {
-    let beat = currentTime * this.master.beatTempo / 60;
-    let repeatBeat = this.master.repeatMeas * this.master.beatNum;
-    let lastBeat = this.master.lastMeas * this.master.beatNum;
-    return (beat - repeatBeat) % (lastBeat - repeatBeat) + repeatBeat;
-  })();
-  let currentClock = currentBeat * this.master.beatClock;
-  let playX = middleSnap(currentBeat / this.master.beatNum) * this.measureWidth;
-
+  let playX = middleSnap(curr.beat / this.master.beatNum) * this.measureWidth;
   ctx.translate(-playX, 0);
 
   let canvasOffsetX = playX - shiftX;
 
   // - rulers -
-  let start; // so that only the rulers in the scroll view are drawn
+  let start; // used to get the ruler offsets in the scroll view
   // beat
   ctx.fillStyle = "#808080";
   let beatWidth = this.measureWidth / this.master.beatNum;
@@ -67,20 +67,23 @@ Player.prototype.draw = function () {
     ctx.fillRect(start, i*16 + 1, canvas.width, 15);
   }
 
+  // - playhead -
+  let clockPerPx = this.master.beatClock * this.master.beatNum / this.measureWidth;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(curr.clock / clockPerPx, 0, 1, canvas.height);
+
   // notes
   ctx.fillStyle = "#F08000";
   // TODO: use interval tree to get the relevant notes to render
-  let clockPerPx = this.master.beatClock * this.master.beatNum / this.measureWidth;
   for (let e of this.evels.evels) {
     if (e.kind != "ON")
       continue;
-    let w = e.value / clockPerPx;
-    if (e.clock <= currentClock && e.clock + e.value > currentClock) {
+    if (e.clock <= curr.clock && e.clock + e.value > curr.clock) {
       ctx.save();
       ctx.fillStyle = "#FFF000";
     }
-    drawUnitNote(ctx, e.clock / clockPerPx, e.unit_no * 16 + 8, w);
-    if (e.clock <= currentClock && e.clock + e.value > currentClock) ctx.restore();
+    drawUnitNote(ctx, e.clock / clockPerPx, e.unit_no * 16 + 8, e.value / clockPerPx);
+    if (e.clock <= curr.clock && e.clock + e.value > curr.clock) ctx.restore();
     // unit_no, value, clock
   }
 
