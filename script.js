@@ -51,7 +51,7 @@ function stopAudio() {
 
 async function reader$onload() {
   stopAudio();
-  let {stream, master, evels, data} = await ctx.decodePxtoneStream(this.result);
+  let {stream, master, units, evels, data} = await ctx.decodePxtoneStream(this.result);
 
   pxtnTitle.innerHTML = escapeHTML(data.title) || "no name";
   pxtnComment.innerHTML = escapeHTML(data.comment).replace(/[\n\r]/g, "<br>") || "no comment";
@@ -64,7 +64,7 @@ async function reader$onload() {
   src.buffer = buffer;
   // if 1st buffer is scheduled exactly at currentTime it starts slightly late,
   // causing overlap with 2nd buffer. so, delaying a bit avoids overlap.
-  let time = ctx.currentTime + 0.02;
+  let time = ctx.currentTime + 0.02;data
   src.start(time);
   src.connect(ctx.destination);
   (async function nextChunk(time, prev) {
@@ -82,6 +82,7 @@ async function reader$onload() {
   })(time + BUFFER_DURATION, src);
 
   MyPlayer.startTime = time + 0.01;
+  MyPlayer.units = units;
   MyPlayer.evels = evels;
   MyPlayer.master = master;
   await ctx.resume();

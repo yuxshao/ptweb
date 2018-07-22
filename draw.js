@@ -18,6 +18,14 @@ const playhead = new Image(9, 5);
 playhead.centre = { x: 4, y: 4 };
 playhead.src = './res/playhead.png';
 
+const unitbars = new Image(145, 192);
+unitbars.top_rect      = { x: 0,  y: 0,  w: 145, h: 32  };
+unitbars.side_rect     = { x: 0,  y: 32, w: 16,  h: 160 };
+unitbars.regular_rect  = { x: 16, y: 32, w: 128, h: 16  };
+unitbars.selected_rect = { x: 16, y: 48, w: 128, h: 16  };
+unitbars.nothing_rect  = { x: 16, y: 64, w: 128, h: 16  };
+unitbars.src = './res/unitbars.png';
+
 function drawImageRect(ctx, res, rect, x, y) {
   ctx.drawImage(res, rect.x, rect.y, rect.w, rect.h, x, y, rect.w, rect.h);
 }
@@ -38,9 +46,11 @@ function drawNum(ctx, res, num, xr, y) {
 let Player = function () {
   this.startTime = null;
   this.audioCtx = null;
-  this.evels = { unitNum: 1, evels: []};
+  this.units = [""];
+  this.evels = [];
   this.master = { beatNum: 4, beatTempo: 120, beatClock: 480, measNum: 1, repeatMeas: 0, lastMeas: 0 };
   this.measureWidth = 192;
+  this.unitOffsetY = 32;
 }
 
 function drawUnitNote(ctx, x, y, w) {
@@ -51,6 +61,26 @@ function drawUnitNote(ctx, x, y, w) {
 }
 
 function middleSnap(x) { return Math.floor(x) + 0.5; }
+
+Player.prototype.drawUnits = function () {
+  let i;
+  drawImageRect(ctx, unitbars, unitbars.top_rect, 0, 0);
+  ctx.translate(0, this.unitOffsetY);
+  for (i = 0; i < 5; ++i)
+    drawImageRect(ctx, unitbars, unitbars.side_rect, 0, unitbars.side_rect.h * i);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "right";
+  for (i = 0; i < this.units.length; ++i) {
+    drawImageRect(ctx, unitbars, unitbars.regular_rect, unitbars.side_rect.w, i*unitbars.regular_rect.h);
+    ctx.fillText(this.units[i],
+      unitbars.side_rect.w + unitbars.regular_rect.w - 2,
+      (i + 0.5) * unitbars.regular_rect.h);
+  }
+  for ( ; i < 50; ++i)
+    drawImageRect(ctx, unitbars, unitbars.nothing_rect, unitbars.side_rect.w, i*unitbars.nothing_rect.h);
+  ctx.translate(0, -this.unitOffsetY);
+}
 
 Player.prototype.draw = function () {
   // calculate time offset
@@ -65,16 +95,18 @@ Player.prototype.draw = function () {
   curr.clock = curr.beat * this.master.beatClock;
 
   // - back -
-  ctx.save(); // song position shift
   // global transform
   ctx.fillStyle = "#000010";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.translate(0, 1); // widget offset
+  ctx.save(); // song position shift
   let shiftX = canvas.width/2;
   ctx.translate(shiftX, 0);
-  ctx.scale(2, 2);
+  // ctx.scale(2, 2);
 
   let playX = middleSnap(curr.beat / this.master.beatNum) * this.measureWidth;
-  ctx.translate(-playX, 1);
+  ctx.translate(-playX, 0);
 
   let canvasOffsetX = playX - shiftX;
 
@@ -124,12 +156,11 @@ Player.prototype.draw = function () {
     ctx.fillRect((i + start) * this.measureWidth, 0, 1, canvas.height);
 
   // unit rows
-  let unitOffsetY = 32;
   start = canvasOffsetX;
 
   ctx.fillStyle = "#400070"; // unit rows
-  for (let i = 0; i < this.evels.unitNum; ++i) {
-    ctx.fillRect(start, i*16 + 1 + unitOffsetY, canvas.width, 15);
+  for (let i = 0; i < this.units.length; ++i) {
+    ctx.fillRect(start, i*16 + 1 + this.unitOffsetY, canvas.width, 15);
   }
 
   // notes
@@ -137,14 +168,14 @@ Player.prototype.draw = function () {
   ctx.fillStyle = "#F08000";
   // TODO: use interval tree to get the relevant notes to render
   // else it lags on big things
-  for (let e of this.evels.evels) {
+  for (let e of this.evels) {
     if (e.kind != "ON")
       continue;
     if (e.clock <= curr.clock && e.clock + e.value > curr.clock) {
       ctx.save();
       ctx.fillStyle = "#FFF000";
     }
-    drawUnitNote(ctx, e.clock / clockPerPx, e.unit_no * 16 + 8 + unitOffsetY, e.value / clockPerPx);
+    drawUnitNote(ctx, e.clock / clockPerPx, e.unit_no * 16 + 8 + this.unitOffsetY, e.value / clockPerPx);
     if (e.clock <= curr.clock && e.clock + e.value > curr.clock) ctx.restore();
   }
 
@@ -157,6 +188,11 @@ Player.prototype.draw = function () {
   ctx.restore(); // playhead position
 
   ctx.restore(); // song position shift
+
+  // ctx.scale(2, 2);
+  this.drawUnits();
+
+  ctx.restore(); // widget offset
 }
 
 Player.prototype.drawContinuously = function () {
