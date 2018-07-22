@@ -40,12 +40,18 @@ const escapeHTML = (() => {
   };
 })();
 
-const BUFFER_DURATION = 1;
+const BUFFER_DURATION = 1.6;
+
+var audioSources = [];
+// to indicate not to schedule next chunk when source is stopped
+function stopAudio() {
+  for (let src of audioSources) { src.onended = () => null; src.stop(); }
+  ctx.suspend();
+}
 
 async function reader$onload() {
+  stopAudio();
   let {stream, master, evels, data} = await ctx.decodePxtoneStream(this.result);
-  MyPlayer.evels = evels;
-  MyPlayer.master = master;
 
   pxtnTitle.innerHTML = escapeHTML(data.title) || "no name";
   pxtnComment.innerHTML = escapeHTML(data.comment).replace(/[\n\r]/g, "<br>") || "no comment";
@@ -64,13 +70,20 @@ async function reader$onload() {
   (async function nextChunk(time, prev) {
     let buffer = await stream.next(BUFFER_DURATION);
     let src = ctx.createBufferSource();
+    audioSources.push(src);
     src.buffer = buffer;
     src.start(time);
     src.connect(ctx.destination);
-    prev.onended = (_e) => nextChunk(time + BUFFER_DURATION, src);
+    prev.onended = (_e) => {
+      let i = audioSources.indexOf(prev);
+      if (i > -1) audioSources.splice(i, 1);
+      nextChunk(time + BUFFER_DURATION, src);
+    }
   })(time + BUFFER_DURATION, src);
 
   MyPlayer.startTime = time + 0.01;
+  MyPlayer.evels = evels;
+  MyPlayer.master = master;
   await ctx.resume();
 }
 
