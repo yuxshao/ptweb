@@ -9,3 +9,4 @@ git add Pxtone.js pxtnDecoder.js emDecoder.wasm .gitmodules .gitignore
 git commit -m "update gh-pages"
 git push -f
 git checkout master
+make
