@@ -25,8 +25,9 @@ Player.prototype.draw = function () {
   let curr = { time: this.audioCtx.currentTime - this.startTime };
   curr.beat = (() => {
     let beat = curr.time * this.master.beatTempo / 60;
+    let lastBeat = this.master.playMeas * this.master.beatNum;
+    if (beat < lastBeat) return beat;
     let repeatBeat = this.master.repeatMeas * this.master.beatNum;
-    let lastBeat = this.master.lastMeas * this.master.beatNum;
     return (beat - repeatBeat) % (lastBeat - repeatBeat) + repeatBeat;
   })();
   curr.clock = curr.beat * this.master.beatClock;
