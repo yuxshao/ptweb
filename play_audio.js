@@ -16,19 +16,9 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
   stream = stream || emptyStream(ctx);
 
   this.schedule_start = async function () {
-    // play 1st buffer, schedule 2nd buffer immediately,
     // schedule buffer i+2 after buffer i finishes.
     // this way there's no delay between buffers
-    let buffer = await stream.next(buffer_duration);
-    let src = ctx.createBufferSource();
-    src.buffer = buffer;
-    // if 1st buffer is scheduled exactly at currentTime it starts slightly late,
-    // causing overlap with 2nd buffer. so, delaying a bit avoids overlap.
-    // a delay also makes it easier to hear the song start after a mouse click
-    let time = ctx.currentTime + 0.25;
-    src.start(time);
-    src.connect(ctx.destination);
-    (async function nextChunk(time, prev) {
+    async function nextChunk(time, prev) {
       let buffer = await stream.next(buffer_duration);
       let src = ctx.createBufferSource();
       sources.push(src);
@@ -40,9 +30,18 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
         if (i > -1) sources.splice(i, 1);
         nextChunk(time + buffer_duration, src);
       }
-    })(time + buffer_duration, src);
+    }
 
-    startTime = time;
+    // if 1st buffer is scheduled exactly at currentTime it starts slightly late,
+    // causing overlap with 2nd buffer. so, delaying a bit avoids overlap.
+    // a delay also makes it easier to hear the song start after a mouse click
+    startTime = ctx.currentTime + 0.25;
+    let dummy = {};
+
+    // schedule the first buffer
+    nextChunk(startTime, dummy)
+    // also schedule 2nd buffer immediately (when buffer '0' finishes)
+      .then(() => dummy.onended(null));
   }
 
   this.stop = function () {
