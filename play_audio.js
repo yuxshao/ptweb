@@ -2,9 +2,18 @@
 
 const BUFFER_DURATION_DEFAULT = 1.6;
 
+function emptyStream(ctx) {
+  return {
+    next: (duration) => ctx.createBuffer(1, 44100*duration, 44100),
+    release: () => null
+  };
+}
+
 export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_DEFAULT) {
   let sources = [];
   let startTime = 0;
+
+  stream = stream || emptyStream(ctx);
 
   this.schedule_start = async function () {
     // play 1st buffer, schedule 2nd buffer immediately,

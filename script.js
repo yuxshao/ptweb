@@ -7,8 +7,11 @@ import {PlayerCanvas} from "./draw.js"
 // AudioContext
 const ctx = new (window.AudioContext || window.webkitAudioContext)();
 ctx.suspend();
-PlayerCanvas.audioCtx = ctx;
-PlayerCanvas.drawContinuously();
+
+let currentAudioPlayer = new AudioPlayer(null, ctx);
+let myPlayerCanvas = new PlayerCanvas(document.getElementById('player'));
+myPlayerCanvas.getTime = currentAudioPlayer.getCurrentTime;
+myPlayerCanvas.drawContinuously();
 
 // Pxtone initialize
 const pxtone = new Pxtone();
@@ -42,23 +45,18 @@ const escapeHTML = (() => {
   };
 })();
 
-var audioSources = [];
 // to indicate not to schedule next chunk when source is stopped
 function stopAudio() {
   button.classList.remove("stop");
   button.classList.add("play");
   button.classList.add("disabled");
-  for (let src of audioSources) { src.onended = () => null; src.stop(); }
+  currentAudioPlayer.stop();
   ctx.suspend();
 }
 
-var currentAudioPlayer = null;
 
 async function reader$onload() {
-  if (currentAudioPlayer) {
-    currentAudioPlayer.stop();
-    ctx.suspend();
-  }
+  stopAudio();
 
   let {stream, master, units, evels, data} = await ctx.decodePxtoneStream(this.result);
 
@@ -68,10 +66,10 @@ async function reader$onload() {
   currentAudioPlayer = new AudioPlayer(stream, ctx);
   currentAudioPlayer.schedule_start();
 
-  PlayerCanvas.getTime = currentAudioPlayer.getCurrentTime;
-  PlayerCanvas.setUnits(units);
-  PlayerCanvas.evels = evels;
-  PlayerCanvas.master = master;
+  myPlayerCanvas.getTime = currentAudioPlayer.getCurrentTime;
+  myPlayerCanvas.setUnits(units);
+  myPlayerCanvas.evels = evels;
+  myPlayerCanvas.master = master;
   button.classList.remove("disabled");
 }
 

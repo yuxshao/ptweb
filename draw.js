@@ -1,8 +1,6 @@
 "use strict";
 
 const canvas = document.getElementById('player');
-const ctx = canvas.getContext('2d');
-ctx.imageSmoothingEnabled = false;
 
 const numbers_green = new Image(80, 8);
 numbers_green.src = './res/numbers_green.png';
@@ -49,16 +47,18 @@ function drawNum(ctx, res, num, xr, y) {
   while (num > 0);
 }
 
-let Player = function () {
+export let PlayerCanvas = function (canvas) {
   this.getTime = () => 0;
   this.setUnits([""]);
   this.evels = [];
   this.master = { beatNum: 4, beatTempo: 120, beatClock: 480, measNum: 1, repeatMeas: 0, lastMeas: 0 };
   this.measureWidth = 192;
   this.unitOffsetY = 32;
+  this.canvas = canvas;
+  this.canvas.getContext('2d').imageSmoothingEnabled = false;
 }
 
-Player.prototype.setUnits = function (units) {
+PlayerCanvas.prototype.setUnits = function (units) {
   this.units = units;
   let l = Math.ceil(units.length/10) * 10;
   canvas.height = unitbars.regular_rect.h * l + unitbars.top_rect.h;
@@ -73,12 +73,19 @@ function drawUnitNote(ctx, x, y, w) {
 
 function middleSnap(x) { return Math.floor(x) + 0.5; }
 
-Player.prototype.drawUnits = function () {
-  let i;
+PlayerCanvas.prototype.drawUnits = function () {
+  let ctx = this.canvas.getContext('2d');
+  // top
   drawImageRect(ctx, unitbars, unitbars.top_rect, 0, 0);
+
+  // left bar
   ctx.translate(0, this.unitOffsetY);
-  for (i = 0; i < 5; ++i)
+  for (let i = 0; i < 5; ++i)
     drawImageRect(ctx, unitbars, unitbars.side_rect, 0, unitbars.side_rect.h * i);
+
+  // rows
+  let i;
+  // 1. filled rows & text
   ctx.fillStyle = "#FFFFFF";
   ctx.textBaseline = "middle";
   ctx.textAlign = "left";
@@ -88,18 +95,21 @@ Player.prototype.drawUnits = function () {
       unitbars.side_rect.w + 5,
       (i + 0.5) * unitbars.regular_rect.h);
   }
+  // 2. empty rows
   for ( ; i < 50; ++i)
     drawImageRect(ctx, unitbars, unitbars.nothing_rect, unitbars.side_rect.w, i*unitbars.nothing_rect.h);
+
   ctx.translate(0, -this.unitOffsetY);
 }
 
-Player.prototype.drawTimeline = function (currBeat, canvas) {
+PlayerCanvas.prototype.drawTimeline = function (currBeat, dimensions) {
   let currClock = currBeat * this.master.beatClock;
+  let ctx = this.canvas.getContext('2d');
 
   // - back -
   // global transform
   ctx.save(); // song position shift
-  let shiftX = canvas.width/2;
+  let shiftX = Math.floor(dimensions.w/2);
   ctx.translate(shiftX, 0);
   // ctx.scale(2, 2);
 
@@ -114,12 +124,12 @@ Player.prototype.drawTimeline = function (currBeat, canvas) {
   ctx.fillStyle = "#808080";
   let beatWidth = this.measureWidth / this.master.beatNum;
   start = Math.floor(canvasOffsetX / beatWidth);
-  for (let i = 0; i < canvas.width / beatWidth + 1; ++i)
-    ctx.fillRect((i + start) * beatWidth, 25, 1, canvas.height);
+  for (let i = 0; i < dimensions.w / beatWidth + 1; ++i)
+    ctx.fillRect((i + start) * beatWidth, 25, 1, dimensions.h);
 
   // measure markers
   start = Math.floor(canvasOffsetX / this.measureWidth);
-  for (let i = 0; i < canvas.width / this.measureWidth + 1; ++i) {
+  for (let i = 0; i < dimensions.w / this.measureWidth + 1; ++i) {
     let box_left = (i + start) * this.measureWidth;
     ctx.fillStyle = "#606060";
     ctx.fillRect(box_left, 0, 27, 9); // great measure number boxes
@@ -145,20 +155,20 @@ Player.prototype.drawTimeline = function (currBeat, canvas) {
   start = canvasOffsetX;
 
   ctx.fillStyle = "#808080"; // grey horizontal line above unit
-  ctx.fillRect(start, 31, canvas.width, 1);
+  ctx.fillRect(start, 31, dimensions.w, 1);
 
   // measure lines
   ctx.fillStyle = "#F0F0F0";
   start = Math.floor(canvasOffsetX / this.measureWidth);
-  for (let i = 0; i < canvas.width / this.measureWidth + 1; ++i)
-    ctx.fillRect((i + start) * this.measureWidth, 0, 1, canvas.height);
+  for (let i = 0; i < dimensions.w / this.measureWidth + 1; ++i)
+    ctx.fillRect((i + start) * this.measureWidth, 0, 1, dimensions.h);
 
   // unit rows
   start = canvasOffsetX;
 
   ctx.fillStyle = "#400070"; // unit rows
   for (let i = 0; i < this.units.length; ++i) {
-    ctx.fillRect(start, i*16 + 1 + this.unitOffsetY, canvas.width, 15);
+    ctx.fillRect(start, i*16 + 1 + this.unitOffsetY, dimensions.w, 15);
   }
 
   // notes
@@ -182,12 +192,13 @@ Player.prototype.drawTimeline = function (currBeat, canvas) {
   ctx.fillStyle = "#FFFFFF";
   ctx.translate(currClock / clockPerPx, 23);
   ctx.drawImage(playhead, -playhead.centre.x, -playhead.centre.y);
-  ctx.fillRect(0, 0, 1, canvas.height);
+  ctx.fillRect(0, 0, 1, dimensions.h);
   ctx.restore(); // playhead position
 
   ctx.restore(); // song position shift
 }
-Player.prototype.draw = function () {
+
+PlayerCanvas.prototype.draw = function () {
   // calculate time offset
   let currBeat = (() => {
     let currTime = this.getTime();
@@ -198,16 +209,17 @@ Player.prototype.draw = function () {
     return (beat - repeatBeat) % (lastBeat - repeatBeat) + repeatBeat;
   })();
   if (currBeat < 0) currBeat = 0;
+  let ctx = this.canvas.getContext('2d');
 
   ctx.fillStyle = "#000010";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.save();
-  ctx.translate(0, 1); // widget offset
+  ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+  ctx.save(); // widget offset
+  ctx.translate(0, 1);
 
   ctx.save();
   let menuWidth = unitbars.regular_rect.w + unitbars.side_rect.w;
   ctx.translate(menuWidth, 0);
-  this.drawTimeline(currBeat, { width: canvas.width - menuWidth, height: canvas.height });
+  this.drawTimeline(currBeat, { w: this.canvas.width - menuWidth, h: this.canvas.height });
   ctx.restore();
   // ctx.scale(2, 2);
   this.drawUnits();
@@ -215,7 +227,8 @@ Player.prototype.draw = function () {
   ctx.restore(); // widget offset
 }
 
-function drawLoading() {
+PlayerCanvas.prototype.drawLoading = function () {
+  let ctx = this.canvas.getContext('2d');
   ctx.fillStyle = "#000010";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -225,14 +238,12 @@ function drawLoading() {
   ctx.fillText("Loading...", 10, 10);
 }
 
-Player.prototype.drawContinuously = function () {
+PlayerCanvas.prototype.drawContinuously = function () {
   let k = this;
   function f(now) {
     k.draw();
     window.requestAnimationFrame(f);
   }
-  drawLoading();
+  this.drawLoading();
   waitForImages().then(() => f(performance.now()));
 }
-
-export var PlayerCanvas = new Player();
