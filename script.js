@@ -1,13 +1,14 @@
 // Based off http://codepen.io/petamoriken/pen/JGWQOE/?editors=001
 "use strict";
 
-import {MyPlayer} from "./draw.js"
+import {AudioPlayer} from "./play_audio.js"
+import {PlayerCanvas} from "./draw.js"
 
 // AudioContext
 const ctx = new (window.AudioContext || window.webkitAudioContext)();
 ctx.suspend();
-MyPlayer.audioCtx = ctx;
-MyPlayer.drawContinuously();
+PlayerCanvas.audioCtx = ctx;
+PlayerCanvas.drawContinuously();
 
 // Pxtone initialize
 const pxtone = new Pxtone();
@@ -41,8 +42,6 @@ const escapeHTML = (() => {
   };
 })();
 
-const BUFFER_DURATION = 1.6;
-
 var audioSources = [];
 // to indicate not to schedule next chunk when source is stopped
 function stopAudio() {
@@ -53,42 +52,26 @@ function stopAudio() {
   ctx.suspend();
 }
 
+var currentAudioPlayer = null;
+
 async function reader$onload() {
-  stopAudio();
+  if (currentAudioPlayer) {
+    currentAudioPlayer.stop();
+    ctx.suspend();
+  }
+
   let {stream, master, units, evels, data} = await ctx.decodePxtoneStream(this.result);
 
   pxtnTitle.innerHTML = escapeHTML(data.title) || "no name";
   pxtnComment.innerHTML = escapeHTML(data.comment).replace(/[\n\r]/g, "<br>") || "no comment";
 
-  // play 1st buffer, schedule 2nd buffer immediately,
-  // schedule buffer i+2 after buffer i finishes.
-  // this way there's no delay between buffers
-  let buffer = await stream.next(BUFFER_DURATION);
-  let src = ctx.createBufferSource();
-  src.buffer = buffer;
-  // if 1st buffer is scheduled exactly at currentTime it starts slightly late,
-  // causing overlap with 2nd buffer. so, delaying a bit avoids overlap.
-  let time = ctx.currentTime + 0.25;
-  src.start(time);
-  src.connect(ctx.destination);
-  (async function nextChunk(time, prev) {
-    let buffer = await stream.next(BUFFER_DURATION);
-    let src = ctx.createBufferSource();
-    audioSources.push(src);
-    src.buffer = buffer;
-    src.start(time);
-    src.connect(ctx.destination);
-    prev.onended = (_e) => {
-      let i = audioSources.indexOf(prev);
-      if (i > -1) audioSources.splice(i, 1);
-      nextChunk(time + BUFFER_DURATION, src);
-    }
-  })(time + BUFFER_DURATION, src);
+  currentAudioPlayer = new AudioPlayer(stream, ctx);
+  currentAudioPlayer.schedule_start();
 
-  MyPlayer.startTime = time;
-  MyPlayer.setUnits(units);
-  MyPlayer.evels = evels;
-  MyPlayer.master = master;
+  PlayerCanvas.getTime = currentAudioPlayer.getCurrentTime;
+  PlayerCanvas.setUnits(units);
+  PlayerCanvas.evels = evels;
+  PlayerCanvas.master = master;
   button.classList.remove("disabled");
 }
 

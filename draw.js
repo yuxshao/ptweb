@@ -26,6 +26,12 @@ unitbars.selected_rect = { x: 16, y: 48, w: 128, h: 16  };
 unitbars.nothing_rect  = { x: 16, y: 64, w: 128, h: 16  };
 unitbars.src = './res/unitbars.png';
 
+var imagesToLoad = [numbers_green, flags, playhead, unitbars];
+async function waitForImages() {
+  for (let image of imagesToLoad)
+    await new Promise((resolve) => { image.onload = () => { resolve() }; })
+}
+
 function drawImageRect(ctx, res, rect, x, y) {
   ctx.drawImage(res, rect.x, rect.y, rect.w, rect.h, x, y, rect.w, rect.h);
 }
@@ -44,8 +50,7 @@ function drawNum(ctx, res, num, xr, y) {
 }
 
 let Player = function () {
-  this.startTime = null;
-  this.audioCtx = null;
+  this.getTime = () => 0;
   this.setUnits([""]);
   this.evels = [];
   this.master = { beatNum: 4, beatTempo: 120, beatClock: 480, measNum: 1, repeatMeas: 0, lastMeas: 0 };
@@ -185,7 +190,7 @@ Player.prototype.drawTimeline = function (currBeat, canvas) {
 Player.prototype.draw = function () {
   // calculate time offset
   let currBeat = (() => {
-    let currTime = this.audioCtx.currentTime - this.startTime;
+    let currTime = this.getTime();
     let beat = currTime * this.master.beatTempo / 60;
     let lastBeat = (this.master.lastMeas || this.master.measNum) * this.master.beatNum;
     if (beat < lastBeat) return beat;
@@ -210,13 +215,24 @@ Player.prototype.draw = function () {
   ctx.restore(); // widget offset
 }
 
+function drawLoading() {
+  ctx.fillStyle = "#000010";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.font = "30px sans-serif";
+  ctx.fillStyle = "#FFFFFF";
+  ctx.textBaseline = "hanging";
+  ctx.fillText("Loading...", 10, 10);
+}
+
 Player.prototype.drawContinuously = function () {
   let k = this;
   function f(now) {
     k.draw();
     window.requestAnimationFrame(f);
   }
-  f(performance.now());
+  drawLoading();
+  waitForImages().then(() => f(performance.now()));
 }
 
-export var MyPlayer = new Player();
+export var PlayerCanvas = new Player();
