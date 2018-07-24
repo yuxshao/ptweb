@@ -111,3 +111,19 @@ output > p {
 .stop:not(.disabled):hover::before, .stop:not(.disabled):hover::after {
   background: black;
 }
+
+#volumeSlider {
+  vertical-align: middle;
+}
+
+#volumeBox {
+  display:block;
+  float:left;
+}
+
+#volumeIndicator {
+  padding: 10px;
+  margin: 10px 0px;
+  display: inline-block;
+  vertical-align: middle;
+}

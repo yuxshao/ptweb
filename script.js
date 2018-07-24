@@ -22,9 +22,14 @@ ctx.decodePxtoneStream = pxtone.decodePxtoneStream.bind(pxtone, ctx);
 
 // DOM
 const file = document.querySelector("#drop > input[type='file']");
-
 const button = document.querySelector(".playerButton");
-const [pxtnName, pxtnTitle, pxtnComment] = [document.querySelector("output > .name"), document.querySelector("output > .title"), document.querySelector("output > .comment")];
+const volumeSlider = document.querySelector("#volumeSlider");
+const volumeIndicator = document.querySelector("#volumeIndicator");
+const [pxtnName, pxtnTitle, pxtnComment] = [
+  document.querySelector("output > .name"),
+  document.querySelector("output > .title"),
+  document.querySelector("output > .comment")
+];
 
 // http://qiita.com/noriaki/items/4bfef8d7cf85dc1035b3
 const escapeHTML = (() => {
@@ -61,14 +66,20 @@ async function stopAudio()   { await currentAudioPlayer.stop();   updateButtonDi
 
 // button
 const playerStateChange = async () => {
-  if(button.classList.contains("disabled")) return;
+  if (button.classList.contains("disabled")) return;
   button.classList.add("disabled");
-  if(currentAudioPlayer.isSuspended()) await resumeAudio();
+  if (currentAudioPlayer.isSuspended()) await resumeAudio();
   else await pauseAudio();
   button.classList.remove("disabled");
 };
-
 button.addEventListener("click", playerStateChange);
+
+// volume slider
+const updateVolume = (_e) => {
+  currentAudioPlayer.setVolume(volumeSlider.value);
+  volumeIndicator.innerHTML = Math.floor(volumeSlider.value * 100) + "%";
+}
+volumeSlider.addEventListener("input", updateVolume);
 
 async function reader$onload() {
   stopAudio();
@@ -80,6 +91,7 @@ async function reader$onload() {
 
   currentAudioPlayer.release();
   currentAudioPlayer = new AudioPlayer(stream, ctx);
+  updateVolume(null);
 
   myPlayerCanvas.getTime = currentAudioPlayer.getCurrentTime;
   myPlayerCanvas.isStarted = currentAudioPlayer.isStarted;

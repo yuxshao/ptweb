@@ -15,6 +15,8 @@ async function sleep (ms) {
 
 export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_DEFAULT) {
   let sources = [];
+  let gainNode = ctx.createGain();
+  gainNode.connect(ctx.destination);
   // player state initialized later down
   let is_started = null, is_suspended = null, startTime = null;
   stream = stream || emptyStream(ctx);
@@ -25,13 +27,16 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
     await this.stop();
     // schedule buffer i+2 after buffer i finishes.
     // this way there's no delay between buffers
+    // issue: in some songs with sparser sounds there's a tiny blip during chunk
+    //        change. i've made it as smooth as possible to the best of my
+    //        knowledge so idk what to do here.
     async function nextChunk(time, prev) {
       let buffer = await stream.next(buffer_duration);
       let src = ctx.createBufferSource();
       sources.push(src);
       src.buffer = buffer;
       src.start(time);
-      src.connect(ctx.destination);
+      src.connect(gainNode);
       prev.onended = (_e) => {
         let i = sources.indexOf(prev);
         if (i > -1) sources.splice(i, 1);
@@ -75,6 +80,10 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
       await ctx.resume();
     }
     else await this.start();
+  }
+
+  this.setVolume = function (volume) {
+    gainNode.gain.setValueAtTime(volume, ctx.currentTime);
   }
 
   // can't use ctx.state because updates are delayed/async
