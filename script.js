@@ -114,7 +114,6 @@ const updateScale = (_e) => myPlayerCanvas.setScale(scaleSelect.checked ? 2 : 1)
 scaleSelect.addEventListener("input", updateScale);
 updateScale(null);
 
-
 async function reader$onload() {
   stopAudio();
 

@@ -6,20 +6,20 @@ import { SortedList }   from "./interval-tree/sorted-list.js"
 const canvas = document.getElementById('player');
 
 const numbers_green = new Image(80, 8);
+const flags = new Image(81, 16);
+const playhead = new Image(9, 5);
+const unitbars = new Image(145, 192);
 numbers_green.src = './res/numbers_green.png';
 numbers_green.digit_size = { x: 8, y: 8 };
 
-const flags = new Image(81, 16);
 flags.src = './res/flags.png';
 flags.top_rect    = { x: 0,  y: 0, w: 36, h: 8 };
 flags.last_rect   = { x: 45, y: 0, w: 35, h: 8 };
 flags.repeat_rect = { x: 0,  y: 8, w: 36, h: 8 };
 
-const playhead = new Image(9, 5);
 playhead.centre = { x: 4, y: 4 };
 playhead.src = './res/playhead.png';
 
-const unitbars = new Image(145, 192);
 unitbars.top_rect      = { x: 0,  y: 0,  w: 145, h: 32  };
 unitbars.side_rect     = { x: 0,  y: 32, w: 16,  h: 160 };
 unitbars.regular_rect  = { x: 16, y: 32, w: 128, h: 16  };
@@ -28,9 +28,10 @@ unitbars.nothing_rect  = { x: 16, y: 64, w: 128, h: 16  };
 unitbars.src = './res/unitbars.png';
 
 var imagesToLoad = [numbers_green, flags, playhead, unitbars];
-async function waitForImages() {
-  for (let image of imagesToLoad)
-    await new Promise((resolve) => { image.onload = () => { resolve() }; })
+// we don't wait for the onloads to be called in case some were already loaded
+// instead we just poll this boolean function
+function imagesLoaded() {
+  return imagesToLoad.every((img) => img.complete);
 }
 
 function drawImageRect(ctx, res, rect, x, y) {
@@ -359,10 +360,16 @@ PlayerCanvas.prototype.drawLoading = function () {
 
 PlayerCanvas.prototype.drawContinuously = function () {
   let k = this;
-  function f(now) {
-    k.draw();
-    window.requestAnimationFrame(f);
+  function waitForLoadDraw(now) {
+    function afterLoadDraw(now) {
+      k.draw();
+      window.requestAnimationFrame(afterLoadDraw);
+    }
+    if (imagesLoaded()) afterLoadDraw(performance.now());
+    else {
+      k.drawLoading();
+      window.requestAnimationFrame(waitForLoadDraw);
+    }
   }
-  this.drawLoading();
-  waitForImages().then(() => f(performance.now()));
+  waitForLoadDraw(performance.now());
 }
