@@ -88,7 +88,9 @@ SortedList = (function(superClass) {
 
   /**
   binary search
-  
+  if value exists, returns position of some instance with value
+  else, returns largest thing < val
+
   @method bsearch
   @param {any} val
   @return {Number} position of the value
@@ -103,6 +105,7 @@ SortedList = (function(superClass) {
     mval = null;
     spos = 0;
     epos = this.length;
+    // epos > spos always. every iteration the distance decreases
     while (epos - spos > 1) {
       mpos = Math.floor((spos + epos) / 2);
       mval = this[mpos];
@@ -116,16 +119,19 @@ SortedList = (function(superClass) {
         epos = mpos;
       }
     }
+    // epos = spos + 1 but it wasn't found
     if (spos === 0 && this.compare(this[0], val) > 0) {
+      // even the smallest element is too big
       return -1;
     } else {
+      // smallest element is not too big
       return spos;
     }
   };
 
 
   /**
-  smallest thing >= val
+  first thing >= val
   
   @method firstPositionOf
   @param {any} val
@@ -137,6 +143,9 @@ SortedList = (function(superClass) {
     index = this.bsearch(val);
     if (index === -1) {
       return 0; /* edited - should not be -1 */
+    }
+    if (index === this.length - 1 && num > this.max()) {
+      return index + 1;
     }
     num = val[this.compareKey];
     ref = this[index]
@@ -158,8 +167,8 @@ SortedList = (function(superClass) {
 
 
   /**
-  largest thing < val
-  
+  last thing <= val
+
   @method lastPositionOf
   @param {any} val
   @return {Number} rightmost position of the value
@@ -172,9 +181,6 @@ SortedList = (function(superClass) {
       return -1;
     }
     num = val[this.compareKey];
-    if (index === this.length - 1 && num > this.max()) {
-      return index + 1;
-    }
     while (true) {
       if (index + 1 >= this.length) {
         break;
