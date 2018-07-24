@@ -1,6 +1,7 @@
 "use strict";
 
 import { IntervalTree } from "./interval-tree/interval-tree.js"
+import { SortedList }   from "./interval-tree/sorted-list.js"
 
 const canvas = document.getElementById('player');
 
@@ -68,11 +69,39 @@ PlayerCanvas.prototype.setData = function(units, evels, master) {
   this.setUnits(units);
 
   let totalClock = master.beatClock * master.beatNum * master.measNum;
+  this.notes = [];
   this.notesIndex = new IntervalTree(totalClock/2);
+
+  // function to call in increasing clock order to assign velocities to on events
+  let assignNoteVel = (() => {
+    let latestNotes = (new Array(units.length)).fill(null);
+    let latestVels  = (new Array(units.length)).fill(null);
+    return (function(note, vel) {
+      let unit_no = null;
+      if (note !== null) {
+        unit_no = note.unit_no;
+        latestNotes[unit_no] = note;
+      }
+      if (vel !== null) {
+        unit_no = vel.unit_no;
+        latestVels[unit_no] = vel;
+      }
+      if (latestNotes[unit_no] !== null && latestVels[unit_no] !== null
+          && latestNotes[unit_no].clock == latestVels[unit_no].clock)
+        latestNotes[unit_no].vel = latestVels[unit_no].value;
+    })
+  })();
+
   for (let i = 0; i < evels.length; ++i) {
     switch (evels[i].kind) {
       case "ON":
-        this.notesIndex.add(evels[i].clock, evels[i].clock + evels[i].value, i);
+        let note = evels[i];
+        assignNoteVel(note, null);
+        this.notes.push(note);
+        this.notesIndex.add(note.clock, note.clock + note.value, this.notes.length-1);
+        break;
+      case "VELOCITY":
+        assignNoteVel(null, evels[i]);
         break;
       default:
         break;
@@ -94,6 +123,23 @@ function drawUnitNote(ctx, x, y, w) {
   ctx.fillRect(x, y-2, Math.max(w-1, 0), 4);
   ctx.fillRect(x, y-3, Math.max(Math.min(2, w), 0), 6);
   ctx.fillRect(x, y-5, 1, 10);
+}
+
+function noteColor(is_playing, vel) {
+  let r1 = 240, g1 = 128;          // interpolate c1 to c2 until vel=104
+  let r2 = 255, g2 = 240, b2 = 0;  // c2 to c3 from vel=104 to 128
+  let                     b3 = 32;
+  let r, g, b;
+  if (!is_playing) { r = r1; g = g1; b = b2; }
+  else {
+    let raw_p = vel / 128;
+    let p = Math.min(0.3 + 0.7 * (vel / 104), 1);
+    let pb = Math.max(0, (vel - 104) / 24);
+    r = r2 * p + (1 - p) * r1;
+    g = g2 * p + (1 - p) * g1;
+    b = b3 * pb + (1 - pb) * b2;
+  }
+  return "rgb(" + r + ", " + g + ", " + b + ")";
 }
 
 function middleSnap(x) { return Math.floor(x) + 0.5; }
@@ -205,16 +251,11 @@ PlayerCanvas.prototype.drawTimeline = function (currBeat, dimensions) {
   let leftBound = canvasOffsetX * clockPerPx;
   let rightBound = (canvasOffsetX + dimensions.w) * clockPerPx;
   this.notesIndex.rangeSearch(leftBound, rightBound).forEach((interval) => {
-    let e = this.evels[interval.id];
-    if (e.kind != "ON")
-      return;
+    let e = this.notes[interval.id];
     let playing = (this.isStarted() && e.clock <= currClock && e.clock + e.value > currClock);
-    if (playing) {
-      ctx.save();
-      ctx.fillStyle = "#FFF000";
-    }
+
+    ctx.fillStyle = noteColor(playing, e.vel);
     drawUnitNote(ctx, e.clock / clockPerPx, e.unit_no * 16 + 8 + this.unitOffsetY, e.value / clockPerPx);
-    if (playing) ctx.restore();
   });
 
   // - playhead -
