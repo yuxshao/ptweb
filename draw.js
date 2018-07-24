@@ -55,6 +55,9 @@ const DEFAULT_MASTER = {
   measNum: 1, repeatMeas: 0, lastMeas: 0
 };
 
+const DEFAULT_VOLUME   = 104;
+const DEFAULT_VELOCITY = 104;
+
 export let PlayerCanvas = function (canvas) {
   this.getTime = () => 0;
   this.isStarted = () => false;
@@ -71,6 +74,9 @@ PlayerCanvas.prototype.setData = function(units, evels, master) {
   let totalClock = master.beatClock * master.beatNum * master.measNum;
   this.notes = [];
   this.notesIndex = new IntervalTree(totalClock/2);
+  this.volumes = new Array(units.length);
+  for (let i = 0; i < units.length; ++i)
+    this.volumes[i] = new SortedList("clock");
 
   // function to call in increasing clock order to assign velocities to on events
   let assignNoteVel = (() => {
@@ -92,23 +98,25 @@ PlayerCanvas.prototype.setData = function(units, evels, master) {
     })
   })();
 
-  for (let i = 0; i < evels.length; ++i) {
-    switch (evels[i].kind) {
+  for (let e of evels) {
+    switch (e.kind) {
       case "ON":
-        let note = evels[i];
-        assignNoteVel(note, null);
-        this.notes.push(note);
-        this.notesIndex.add(note.clock, note.clock + note.value, this.notes.length-1);
+        assignNoteVel(e, null);
+        this.notes.push(e);
+        this.notesIndex.add(e.clock, e.clock + e.value, this.notes.length-1);
         break;
       case "VELOCITY":
-        assignNoteVel(null, evels[i]);
+        assignNoteVel(null, e);
+        break;
+      case "VOLUME":
+        this.volumes[e.unit_no].insert(e);
         break;
       default:
         break;
     }
   }
+  console.log(this.volumes);
 
-  this.evels = evels;
   this.master = master;
 }
 
@@ -118,6 +126,12 @@ PlayerCanvas.prototype.setUnits = function (units) {
   canvas.height = unitbars.regular_rect.h * l + unitbars.top_rect.h;
 }
 
+PlayerCanvas.prototype.volumeAt = function (unit_no, clock) {
+  let i = this.volumes[unit_no].lastPositionOf({ clock: clock });
+  if (i == -1) return DEFAULT_VOLUME;
+  return this.volumes[unit_no][i].value;
+}
+
 function drawUnitNote(ctx, x, y, w) {
   ctx.fillRect(x, y-1, w, 2);
   ctx.fillRect(x, y-2, Math.max(w-1, 0), 4);
@@ -125,16 +139,17 @@ function drawUnitNote(ctx, x, y, w) {
   ctx.fillRect(x, y-5, 1, 10);
 }
 
-function noteColor(is_playing, vel) {
-  let r1 = 240, g1 = 128;          // interpolate c1 to c2 until vel=104
-  let r2 = 255, g2 = 240, b2 = 0;  // c2 to c3 from vel=104 to 128
-  let                     b3 = 32;
+function noteColor(is_playing, vel, vol) {
+  let r1 = 240, g1 = 128;          // interpolate c1 to c2 until default velocities and volume
+  let r2 = 255, g2 = 240, b2 = 0;  // c2 to c3 from to max velocity and volume
+  let                     b3 = 128;
   let r, g, b;
   if (!is_playing) { r = r1; g = g1; b = b2; }
   else {
-    let raw_p = vel / 128;
-    let p = Math.min(0.3 + 0.7 * (vel / 104), 1);
-    let pb = Math.max(0, (vel - 104) / 24);
+    let raw_p = vel * vol / 128 / 128;
+    let def_p = DEFAULT_VELOCITY * DEFAULT_VOLUME / 128 / 128;
+    let p = Math.min((0.15 + 0.85 * (vel / DEFAULT_VELOCITY)) * vol / DEFAULT_VOLUME, 1);
+    let pb = Math.max(0, (raw_p - def_p) / (1 - def_p));
     r = r2 * p + (1 - p) * r1;
     g = g2 * p + (1 - p) * g1;
     b = b3 * pb + (1 - pb) * b2;
@@ -254,7 +269,7 @@ PlayerCanvas.prototype.drawTimeline = function (currBeat, dimensions) {
     let e = this.notes[interval.id];
     let playing = (this.isStarted() && e.clock <= currClock && e.clock + e.value > currClock);
 
-    ctx.fillStyle = noteColor(playing, e.vel);
+    ctx.fillStyle = noteColor(playing, e.vel, this.volumeAt(e.unit_no, currClock));
     drawUnitNote(ctx, e.clock / clockPerPx, e.unit_no * 16 + 8 + this.unitOffsetY, e.value / clockPerPx);
   });
 
