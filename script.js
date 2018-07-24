@@ -46,7 +46,7 @@ const escapeHTML = (() => {
 })();
 
 function updateButtonDisplay() {
-  if (!currentAudioPlayer.isPlaying()) {
+  if (currentAudioPlayer.isSuspended()) {
     button.classList.remove("stop");
     button.classList.add("play");
   } else {
@@ -63,7 +63,7 @@ async function stopAudio()   { await currentAudioPlayer.stop();   updateButtonDi
 const playerStateChange = async () => {
   if(button.classList.contains("disabled")) return;
   button.classList.add("disabled");
-  if(!currentAudioPlayer.isPlaying()) await resumeAudio();
+  if(currentAudioPlayer.isSuspended()) await resumeAudio();
   else await pauseAudio();
   button.classList.remove("disabled");
 };
@@ -82,6 +82,7 @@ async function reader$onload() {
   currentAudioPlayer = new AudioPlayer(stream, ctx);
 
   myPlayerCanvas.getTime = currentAudioPlayer.getCurrentTime;
+  myPlayerCanvas.isStarted = currentAudioPlayer.isStarted;
   myPlayerCanvas.setUnits(units);
   myPlayerCanvas.evels = evels;
   myPlayerCanvas.master = master;

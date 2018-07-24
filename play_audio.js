@@ -16,7 +16,7 @@ async function sleep (ms) {
 export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_DEFAULT) {
   let sources = [];
   // player state initialized later down
-  let buffered = null, is_playing = null, startTime = null;
+  let is_started = null, is_suspended = null, startTime = null;
   stream = stream || emptyStream(ctx);
 
   // TODO: allow seek functionality
@@ -46,7 +46,7 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
     await nextChunk(startTime, dummy);
     // also schedule 2nd buffer immediately (when buffer '0' finishes)
     dummy.onended(null);
-    buffered = true;
+    is_started = true;
 
     await this.resume();
   }
@@ -55,7 +55,7 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
     await this.pause();
     // make sure to detach the event handlers that start the next chunk
     for (let src of sources) { src.onended = () => null; src.stop(); }
-    buffered = false;
+    is_started = false;
   }
 
   this.release = function () {
@@ -63,14 +63,14 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
   }
 
   this.pause = async function () {
-    is_playing = false;
+    is_suspended = true;
     await ctx.suspend();
   }
 
   this.resume = async function () {
-    is_playing = true;
+    is_suspended = false;
     // a short delay makes it easier to hear the song start after a mouse click
-    if (buffered) {
+    if (is_started) {
       await sleep(100);
       await ctx.resume();
     }
@@ -78,7 +78,8 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
   }
 
   // can't use ctx.state because updates are delayed/async
-  this.isPlaying = () => is_playing;
+  this.isSuspended = () => is_suspended;
+  this.isStarted   = () => is_started;
 
   // initialize player state
   this.stop().then(() => { startTime = ctx.currentTime; });

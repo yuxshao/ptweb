@@ -49,6 +49,7 @@ function drawNum(ctx, res, num, xr, y) {
 
 export let PlayerCanvas = function (canvas) {
   this.getTime = () => 0;
+  this.isStarted = () => false;
   this.setUnits([""]);
   this.evels = [];
   this.master = { beatNum: 4, beatTempo: 120, beatClock: 480, measNum: 1, repeatMeas: 0, lastMeas: 0 };
@@ -179,12 +180,13 @@ PlayerCanvas.prototype.drawTimeline = function (currBeat, dimensions) {
   for (let e of this.evels) {
     if (e.kind != "ON")
       continue;
-    if (e.clock <= currClock && e.clock + e.value > currClock) {
+    let playing = (this.isStarted() && e.clock <= currClock && e.clock + e.value > currClock);
+    if (playing) {
       ctx.save();
       ctx.fillStyle = "#FFF000";
     }
     drawUnitNote(ctx, e.clock / clockPerPx, e.unit_no * 16 + 8 + this.unitOffsetY, e.value / clockPerPx);
-    if (e.clock <= currClock && e.clock + e.value > currClock) ctx.restore();
+    if (playing) ctx.restore();
   }
 
   // - playhead -
