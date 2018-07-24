@@ -26,9 +26,9 @@ const button = document.querySelector(".playerButton");
 const volumeSlider = document.querySelector("#volumeSlider");
 const volumeIndicator = document.querySelector("#volumeIndicator");
 const [pxtnName, pxtnTitle, pxtnComment] = [
-  document.querySelector("output > .name"),
-  document.querySelector("output > .title"),
-  document.querySelector("output > .comment")
+  document.querySelector("output .name"),
+  document.querySelector("output .title"),
+  document.querySelector("output .comment")
 ];
 
 // http://qiita.com/noriaki/items/4bfef8d7cf85dc1035b3

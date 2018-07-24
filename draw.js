@@ -115,7 +115,6 @@ PlayerCanvas.prototype.setData = function(units, evels, master) {
         break;
     }
   }
-  console.log(this.volumes);
 
   this.master = master;
 }
@@ -141,7 +140,7 @@ function drawUnitNote(ctx, x, y, w) {
 
 function noteColor(is_playing, vel, vol) {
   let r1 = 240, g1 = 128;          // interpolate c1 to c2 until default velocities and volume
-  let r2 = 255, g2 = 240, b2 = 0;  // c2 to c3 from to max velocity and volume
+  let r2 = 255, g2 = 255, b2 = 0;  // c2 to c3 from to max velocity and volume
   let                     b3 = 128;
   let r, g, b;
   if (!is_playing) { r = r1; g = g1; b = b2; }
