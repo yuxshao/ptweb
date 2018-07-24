@@ -50,6 +50,34 @@ function drawNum(ctx, res, num, xr, y) {
   while (num > 0);
 }
 
+function drawUnitNote(ctx, x, y, w) {
+  ctx.fillRect(x, y-1, w, 2);
+  ctx.fillRect(x, y-2, Math.max(w-1, 0), 4);
+  ctx.fillRect(x, y-3, Math.max(Math.min(2, w), 0), 6);
+  ctx.fillRect(x, y-5, 1, 10);
+}
+
+function noteColor(is_playing, vel, vol) {
+  let r1 = 240, g1 = 128;          // interpolate c1 to c2 until default velocities and volume
+  let r2 = 255, g2 = 255, b2 = 0;  // c2 to c3 from to max velocity and volume
+  let                     b3 = 128;
+  let r, g, b;
+  if (!is_playing) { r = r1; g = g1; b = b2; }
+  else {
+    let raw_p = vel * vol / 128 / 128;
+    let def_p = DEFAULT_VELOCITY * DEFAULT_VOLUME / 128 / 128;
+    let p = Math.min((0.15 + 0.85 * (vel / DEFAULT_VELOCITY)) * vol / DEFAULT_VOLUME, 1);
+    let pb = Math.max(0, (raw_p - def_p) / (1 - def_p));
+    r = r2 * p + (1 - p) * r1;
+    g = g2 * p + (1 - p) * g1;
+    b = b3 * pb + (1 - pb) * b2;
+  }
+  return "rgb(" + r + ", " + g + ", " + b + ")";
+}
+
+function middleSnap(x) { return Math.floor(x) + 0.5; }
+
+
 const DEFAULT_MASTER = {
   beatNum: 4, beatTempo: 120, beatClock: 480,
   measNum: 1, repeatMeas: 0, lastMeas: 0
@@ -60,21 +88,28 @@ const DEFAULT_VELOCITY = 104;
 const BASE_MEASURE_WIDTH = 192;
 
 export let PlayerCanvas = function (canvas) {
-  this.getTime = () => 0;
-  this.isStarted = () => false;
-  this.setData([""], [], DEFAULT_MASTER);
-  this.measureWidth = BASE_MEASURE_WIDTH;
-  this.snap = 'meas';
   this.unitOffsetY = 32;
   this.canvas = canvas;
-  this.canvas.getContext('2d').imageSmoothingEnabled = false;
+  let ctx = this.canvas.getContext('2d');
+
+  this.getTime = () => 0;
+  this.isStarted = () => false;
+
+  this.setData([""], [], DEFAULT_MASTER);
+  this.setZoom(1);
+  this.setSnap('meas');
+  this.setScale(1);
 }
 
 PlayerCanvas.prototype.setZoom = function (zoom) {
   this.measureWidth = BASE_MEASURE_WIDTH * zoom;
 }
 
-PlayerCanvas.prototype.setSnap = function (snap) { this.snap = snap; };
+PlayerCanvas.prototype.setSnap  = function (snap) { this.snap = snap; };
+PlayerCanvas.prototype.setScale = function (scale) {
+  this.scale = scale;
+  this.updateCanvasHeight();
+};
 
 PlayerCanvas.prototype.setData = function(units, evels, master) {
   this.setUnits(units);
@@ -129,42 +164,18 @@ PlayerCanvas.prototype.setData = function(units, evels, master) {
 
 PlayerCanvas.prototype.setUnits = function (units) {
   this.units = units;
-  let l = Math.ceil(units.length/10) * 10;
-  canvas.height = unitbars.regular_rect.h * l + unitbars.top_rect.h;
+  this.updateCanvasHeight();
 }
 
+PlayerCanvas.prototype.updateCanvasHeight = function () {
+  let l = Math.ceil(this.units.length/10) * 10;
+  canvas.height = (unitbars.regular_rect.h * l + unitbars.top_rect.h) * this.scale;
+}
 PlayerCanvas.prototype.volumeAt = function (unit_no, clock) {
   let i = this.volumes[unit_no].lastPositionOf({ clock: clock });
   if (i == -1) return DEFAULT_VOLUME;
   return this.volumes[unit_no][i].value;
 }
-
-function drawUnitNote(ctx, x, y, w) {
-  ctx.fillRect(x, y-1, w, 2);
-  ctx.fillRect(x, y-2, Math.max(w-1, 0), 4);
-  ctx.fillRect(x, y-3, Math.max(Math.min(2, w), 0), 6);
-  ctx.fillRect(x, y-5, 1, 10);
-}
-
-function noteColor(is_playing, vel, vol) {
-  let r1 = 240, g1 = 128;          // interpolate c1 to c2 until default velocities and volume
-  let r2 = 255, g2 = 255, b2 = 0;  // c2 to c3 from to max velocity and volume
-  let                     b3 = 128;
-  let r, g, b;
-  if (!is_playing) { r = r1; g = g1; b = b2; }
-  else {
-    let raw_p = vel * vol / 128 / 128;
-    let def_p = DEFAULT_VELOCITY * DEFAULT_VOLUME / 128 / 128;
-    let p = Math.min((0.15 + 0.85 * (vel / DEFAULT_VELOCITY)) * vol / DEFAULT_VOLUME, 1);
-    let pb = Math.max(0, (raw_p - def_p) / (1 - def_p));
-    r = r2 * p + (1 - p) * r1;
-    g = g2 * p + (1 - p) * g1;
-    b = b3 * pb + (1 - pb) * b2;
-  }
-  return "rgb(" + r + ", " + g + ", " + b + ")";
-}
-
-function middleSnap(x) { return Math.floor(x) + 0.5; }
 
 PlayerCanvas.prototype.drawUnits = function () {
   let ctx = this.canvas.getContext('2d');
@@ -217,7 +228,6 @@ PlayerCanvas.prototype.drawTimeline = function (currBeat, dimensions) {
       break;
   }
   ctx.translate(shiftX, 0);
-  // ctx.scale(2, 2);
   ctx.translate(-playX, 0);
 
   let canvasOffsetX = playX - shiftX;
@@ -314,21 +324,26 @@ PlayerCanvas.prototype.draw = function () {
   })();
   if (currBeat < 0) currBeat = 0;
   let ctx = this.canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
 
   ctx.fillStyle = "#000010";
   ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-  ctx.save(); // widget offset
+  ctx.save(); // widget offset and scale
+  ctx.scale(this.scale, this.scale);
   ctx.translate(0, 1);
 
   ctx.save();
   let menuWidth = unitbars.regular_rect.w + unitbars.side_rect.w;
   ctx.translate(menuWidth, 0);
-  this.drawTimeline(currBeat, { w: this.canvas.width - menuWidth, h: this.canvas.height });
+  let dimensions = {
+    w: this.canvas.width/this.scale - menuWidth,
+    h: this.canvas.height/this.scale
+  };
+  this.drawTimeline(currBeat, dimensions);
   ctx.restore();
-  // ctx.scale(2, 2);
   this.drawUnits();
 
-  ctx.restore(); // widget offset
+  ctx.restore(); // widget offset and scale
 }
 
 PlayerCanvas.prototype.drawLoading = function () {

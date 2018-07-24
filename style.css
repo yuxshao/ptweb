@@ -121,11 +121,9 @@ output > p {
   float:left;
 }
 
-#volumeIndicator {
-  padding: 10px;
+#volumeBox {
+  padding: 10px 10px 10px 5px;
   margin: 10px 0px;
-  display: inline-block;
-  vertical-align: middle;
 }
 
 #controlBox {
@@ -137,6 +135,11 @@ output > p {
   margin:0px 10px 0px 5px;
   /*border:1px solid;
   padding:3px;*/
+}
+
+#controlBox > input {
+  display: inline-block;
+  vertical-align:middle;
 }
 
 footer {

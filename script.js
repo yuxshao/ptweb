@@ -27,6 +27,7 @@ const volumeSlider    = document.querySelector("#volumeSlider");
 const volumeIndicator = document.querySelector("#volumeIndicator");
 const zoomSelect      = document.querySelector("#zoomSelect");
 const snapSelect      = document.querySelector("#snapSelect");
+const scaleSelect     = document.querySelector("#scaleSelect");
 const [pxtnName, pxtnTitle, pxtnComment] = [
   document.querySelector("output .name"),
   document.querySelector("output .title"),
@@ -83,15 +84,21 @@ const updateVolume = (_e) => {
 }
 volumeSlider.addEventListener("input", updateVolume);
 
+// display: zoom and snap and scale
 const updateZoom = (_e) => myPlayerCanvas.setZoom(zoomSelect.value);
 zoomSelect.addEventListener("input", updateZoom);
+zoomSelect.addEventListener("change", updateZoom);
 updateZoom(null);
 
 const updateSnap = (_e) => myPlayerCanvas.setSnap(snapSelect.value);
 snapSelect.addEventListener("input", updateSnap);
+snapSelect.addEventListener("change", updateSnap);
 updateSnap(null);
 
-// zoom and snap
+const updateScale = (_e) => myPlayerCanvas.setScale(scaleSelect.checked ? 2 : 1);
+scaleSelect.addEventListener("input", updateScale);
+updateScale(null);
+
 
 async function reader$onload() {
   stopAudio();
