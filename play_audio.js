@@ -9,13 +9,20 @@ function emptyStream(ctx) {
   };
 }
 
+async function sleep (ms) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_DEFAULT) {
   let sources = [];
-  let startTime = 0;
-
+  // player state initialized later down
+  let buffered = null, is_playing = null, startTime = null;
   stream = stream || emptyStream(ctx);
 
-  this.schedule_start = async function () {
+  // TODO: allow seek functionality
+  // you'll need it if you want to do stop and then start
+  this.start = async function () {
+    await this.stop();
     // schedule buffer i+2 after buffer i finishes.
     // this way there's no delay between buffers
     async function nextChunk(time, prev) {
@@ -32,27 +39,49 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
       }
     }
 
-    // if 1st buffer is scheduled exactly at currentTime it starts slightly late,
-    // causing overlap with 2nd buffer. so, delaying a bit avoids overlap.
-    // a delay also makes it easier to hear the song start after a mouse click
-    startTime = ctx.currentTime + 0.25;
+    startTime = ctx.currentTime + 0.1;
     let dummy = {};
 
     // schedule the first buffer
-    nextChunk(startTime, dummy)
+    await nextChunk(startTime, dummy);
     // also schedule 2nd buffer immediately (when buffer '0' finishes)
-      .then(() => dummy.onended(null));
+    dummy.onended(null);
+    buffered = true;
+
+    await this.resume();
   }
 
-  this.stop = function () {
+  this.stop = async function () {
+    await this.pause();
     // make sure to detach the event handlers that start the next chunk
     for (let src of sources) { src.onended = () => null; src.stop(); }
-    // TODO: reset to start position? or maybe specify position in schedule start?
+    buffered = false;
   }
 
   this.release = function () {
     stream.release();
   }
+
+  this.pause = async function () {
+    is_playing = false;
+    await ctx.suspend();
+  }
+
+  this.resume = async function () {
+    is_playing = true;
+    // a short delay makes it easier to hear the song start after a mouse click
+    if (buffered) {
+      await sleep(100);
+      await ctx.resume();
+    }
+    else await this.start();
+  }
+
+  // can't use ctx.state because updates are delayed/async
+  this.isPlaying = () => is_playing;
+
+  // initialize player state
+  this.stop().then(() => { startTime = ctx.currentTime; });
 
   // current time along the song (according to actual audio context)
   this.getCurrentTime = () => ctx.currentTime - startTime;

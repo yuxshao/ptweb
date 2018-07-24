@@ -45,15 +45,30 @@ const escapeHTML = (() => {
   };
 })();
 
-// to indicate not to schedule next chunk when source is stopped
-function stopAudio() {
-  button.classList.remove("stop");
-  button.classList.add("play");
-  button.classList.add("disabled");
-  currentAudioPlayer.stop();
-  ctx.suspend();
+function updateButtonDisplay() {
+  if (!currentAudioPlayer.isPlaying()) {
+    button.classList.remove("stop");
+    button.classList.add("play");
+  } else {
+    button.classList.remove("play");
+    button.classList.add("stop");
+  }
 }
 
+async function resumeAudio() { await currentAudioPlayer.resume(); updateButtonDisplay(); }
+async function pauseAudio()  { await currentAudioPlayer.pause();  updateButtonDisplay(); }
+async function stopAudio()   { await currentAudioPlayer.stop();   updateButtonDisplay(); }
+
+// button
+const playerStateChange = async () => {
+  if(button.classList.contains("disabled")) return;
+  button.classList.add("disabled");
+  if(!currentAudioPlayer.isPlaying()) await resumeAudio();
+  else await pauseAudio();
+  button.classList.remove("disabled");
+};
+
+button.addEventListener("click", playerStateChange);
 
 async function reader$onload() {
   stopAudio();
@@ -63,40 +78,15 @@ async function reader$onload() {
   pxtnTitle.innerHTML = escapeHTML(data.title) || "no name";
   pxtnComment.innerHTML = escapeHTML(data.comment).replace(/[\n\r]/g, "<br>") || "no comment";
 
+  currentAudioPlayer.release();
   currentAudioPlayer = new AudioPlayer(stream, ctx);
-  currentAudioPlayer.schedule_start();
 
   myPlayerCanvas.getTime = currentAudioPlayer.getCurrentTime;
   myPlayerCanvas.setUnits(units);
   myPlayerCanvas.evels = evels;
   myPlayerCanvas.master = master;
-  button.classList.remove("disabled");
 }
 
-const playerStateChange = (() => {
-  let isPlaying = false;
-  return () => {
-    if(button.classList.contains("disabled"))
-      return;
-    // play
-    if(!isPlaying) {
-      isPlaying = true;
-      ctx.resume();
-      button.classList.remove("play");
-      button.classList.add("stop");
-    // stop
-    } else {
-      isPlaying = false;
-      ctx.suspend();
-      button.classList.remove("stop");
-      button.classList.add("play");
-    }
-  };
-  
-})();
-
-// button
-button.addEventListener("click", playerStateChange);
 // input Pxtone Collage file
 file.addEventListener("change", () => {
   const pxtnFile = file.files[0];
