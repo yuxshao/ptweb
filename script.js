@@ -21,10 +21,12 @@ pxtone.decoder = new Worker("./pxtnDecoder.js");
 ctx.decodePxtoneStream = pxtone.decodePxtoneStream.bind(pxtone, ctx);
 
 // DOM
-const file = document.querySelector("#drop > input[type='file']");
-const button = document.querySelector(".playerButton");
-const volumeSlider = document.querySelector("#volumeSlider");
+const file            = document.querySelector("#drop > input[type='file']");
+const button          = document.querySelector(".playerButton");
+const volumeSlider    = document.querySelector("#volumeSlider");
 const volumeIndicator = document.querySelector("#volumeIndicator");
+const zoomSelect      = document.querySelector("#zoomSelect");
+const snapSelect      = document.querySelector("#snapSelect");
 const [pxtnName, pxtnTitle, pxtnComment] = [
   document.querySelector("output .name"),
   document.querySelector("output .title"),
@@ -80,6 +82,16 @@ const updateVolume = (_e) => {
   volumeIndicator.innerHTML = Math.floor(volumeSlider.value * 100) + "%";
 }
 volumeSlider.addEventListener("input", updateVolume);
+
+const updateZoom = (_e) => myPlayerCanvas.setZoom(zoomSelect.value);
+zoomSelect.addEventListener("input", updateZoom);
+updateZoom(null);
+
+const updateSnap = (_e) => myPlayerCanvas.setSnap(snapSelect.value);
+snapSelect.addEventListener("input", updateSnap);
+updateSnap(null);
+
+// zoom and snap
 
 async function reader$onload() {
   stopAudio();

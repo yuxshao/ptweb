@@ -1,4 +1,4 @@
-* {
+html, body, input, div, p {
   margin: 0;
   padding: 0;
   border: 0;
@@ -116,7 +116,7 @@ output > p {
   vertical-align: middle;
 }
 
-#volumeBox {
+#volumeBox, #controlBox {
   display:block;
   float:left;
 }
@@ -126,6 +126,17 @@ output > p {
   margin: 10px 0px;
   display: inline-block;
   vertical-align: middle;
+}
+
+#controlBox {
+  padding:5px 10px;
+  margin:10px 0px;
+  border-left: 1px solid black;
+}
+#controlBox > select {
+  margin:0px 10px 0px 5px;
+  /*border:1px solid;
+  padding:3px;*/
 }
 
 footer {

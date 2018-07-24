@@ -9,7 +9,9 @@
 <script src="pxtnDecoder.js"></script>
 <script src="Pxtone.js"></script>
 <body>
+
 <canvas id="player" onload="this.width = window.innerWidth" height="832"></canvas>
+
 <div id="drop">
   <p>Load file</p>
   <input type="file" accept=".ptcop,.pttune">
@@ -19,6 +21,22 @@
   <input type="range" id="volumeSlider" value="1" min="0" max="1.2" step="any">
   <span id="volumeIndicator">100%</span>
 </div>
+<div id="controlBox">
+  zoom: 
+  <select id="zoomSelect">
+    <option value="0.5">1/2</option>
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="4">4</option>
+  </select>
+  snap: 
+  <select id="snapSelect">
+    <option value="meas">measure</option>
+    <option value="beat">beat</option>
+    <option value="none">none</option>
+  </select>
+</div>
+
 <output>
   file name:
   <p class="name">&nbsp;</p>
@@ -27,11 +45,14 @@
   comment:<br />
   <p><pre class="comment">&nbsp;</pre></p>
 </output>
+
 <footer style="border:1px 0 0 0 solid black; margin:20px; display:block; float:left">
   <a href="https://github.com/yuxshao/ptweb">ptweb source</a> | <a href="https://github.com/petamoriken/PxtoneJS">original PxtoneJS</a> | <a href="http://pxtone.org/">pxtone &copy; Studio Pixel</a>
 </footer>
+
 <script src="script.js" type="module"></script>
 <script>
+  // resize canvas on window resize
   (function () {
     const canvas = document.getElementById('player');
     function resize() { canvas.width = window.innerWidth-16; }

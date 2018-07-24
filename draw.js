@@ -57,16 +57,24 @@ const DEFAULT_MASTER = {
 
 const DEFAULT_VOLUME   = 104;
 const DEFAULT_VELOCITY = 104;
+const BASE_MEASURE_WIDTH = 192;
 
 export let PlayerCanvas = function (canvas) {
   this.getTime = () => 0;
   this.isStarted = () => false;
   this.setData([""], [], DEFAULT_MASTER);
-  this.measureWidth = 192;
+  this.measureWidth = BASE_MEASURE_WIDTH;
+  this.snap = 'meas';
   this.unitOffsetY = 32;
   this.canvas = canvas;
   this.canvas.getContext('2d').imageSmoothingEnabled = false;
 }
+
+PlayerCanvas.prototype.setZoom = function (zoom) {
+  this.measureWidth = BASE_MEASURE_WIDTH * zoom;
+}
+
+PlayerCanvas.prototype.setSnap = function (snap) { this.snap = snap; };
 
 PlayerCanvas.prototype.setData = function(units, evels, master) {
   this.setUnits(units);
@@ -194,11 +202,22 @@ PlayerCanvas.prototype.drawTimeline = function (currBeat, dimensions) {
   // - back -
   // global transform
   ctx.save(); // song position shift
+
   let shiftX = Math.floor(dimensions.w/2);
+  let playX;
+  switch (this.snap) {
+    case 'beat':
+      playX = middleSnap(currBeat) / this.master.beatNum * this.measureWidth;
+      break;
+    case 'meas':
+      playX = middleSnap(currBeat / this.master.beatNum) * this.measureWidth;
+      break;
+    default:
+      playX = currBeat / this.master.beatNum * this.measureWidth;
+      break;
+  }
   ctx.translate(shiftX, 0);
   // ctx.scale(2, 2);
-
-  let playX = middleSnap(currBeat / this.master.beatNum) * this.measureWidth;
   ctx.translate(-playX, 0);
 
   let canvasOffsetX = playX - shiftX;
