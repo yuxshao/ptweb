@@ -25,7 +25,7 @@ canvas { display:block; margin:2px auto; }
   width: 100%;
   transform: translate(-50%, -50%);
   text-align: center;
-  color: gray;
+  color: darkgray;
 }
 
 #drop input[type="file"] {
@@ -48,7 +48,7 @@ output {
   margin: 10px 10px 10px 0px;
 }
 
-output > p {
+output > p, output > .comment {
   margin-left: 3em;
 }
 
@@ -68,15 +68,15 @@ output > p {
   display: block;
   border-style: solid;
   border-width: 10px 0 10px 17.3px;
-  border-color: transparent transparent transparent gray;
+  border-color: transparent transparent transparent black;
 }
 
 .play.disabled::before {
-  border-color: transparent transparent transparent black;
+  border-color: transparent transparent transparent darkgray;
 }
 
 .play:not(.disabled):hover::before {
-  border-color: transparent transparent transparent black;
+  border-color: transparent transparent transparent dimgray;
 }
 
 .pause {
@@ -91,7 +91,7 @@ output > p {
   display: block;
   width: 5px;
   height: 20px;
-  background: gray;
+  background: black;
 }
 
 .pause::after {
@@ -101,15 +101,15 @@ output > p {
   display: block;
   width: 5px;
   height: 20px;
-  background: gray;
+  background: black;
 }
 
 .pause.disabled::before, .pause.disabled::after {
-  background: black;
+  background: darkgray;
 }
 
 .pause:not(.disabled):hover::before, .pause:not(.disabled):hover::after {
-  background: black;
+  background: dimgray;
 }
 
 .stopButton:not(.disabled) {
@@ -119,12 +119,16 @@ output > p {
 .stop {
   width: 20px;
   height: 20px;
-  background: gray;
+  background: black;
   margin: 20px;
 }
 
-.stop.disabled, .stop:not(.disabled):hover {
-  background: black;
+.stop.disabled {
+  background: darkgray;
+}
+
+.stop:not(.disabled):hover {
+  background: dimgray;
 }
 
 #volumeSlider {

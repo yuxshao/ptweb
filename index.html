@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>pxtone player</title>
+<title>pxtone web player</title>
 <link rel="stylesheet" type="text/css" href="style.css">
 <script src="pxtnDecoder.js"></script>
 <script src="Pxtone.js"></script>
@@ -45,7 +45,7 @@
   title:
   <p class="title">&nbsp;</p>
   comment:<br />
-  <p><pre class="comment">&nbsp;</pre></p>
+  <pre class="comment">&nbsp;</pre>
 </output>
 
 <footer style="border:1px 0 0 0 solid black; margin:20px; display:block; float:left">
@@ -57,7 +57,7 @@
   // resize canvas on window resize
   (function () {
     const canvas = document.getElementById('player');
-    function resize() { canvas.width = window.innerWidth-16; }
+    function resize() { canvas.width = window.innerWidth-30; }
     window.addEventListener('resize', resize, false);
     resize();
   })();
