@@ -83,9 +83,7 @@ async function reader$onload() {
 
   myPlayerCanvas.getTime = currentAudioPlayer.getCurrentTime;
   myPlayerCanvas.isStarted = currentAudioPlayer.isStarted;
-  myPlayerCanvas.setUnits(units);
-  myPlayerCanvas.evels = evels;
-  myPlayerCanvas.master = master;
+  myPlayerCanvas.setData(units, evels, master);
 }
 
 // input Pxtone Collage file

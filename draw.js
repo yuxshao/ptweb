@@ -1,5 +1,7 @@
 "use strict";
 
+import { IntervalTree } from "./interval-tree/interval-tree.js"
+
 const canvas = document.getElementById('player');
 
 const numbers_green = new Image(80, 8);
@@ -47,16 +49,38 @@ function drawNum(ctx, res, num, xr, y) {
   while (num > 0);
 }
 
+const DEFAULT_MASTER = {
+  beatNum: 4, beatTempo: 120, beatClock: 480,
+  measNum: 1, repeatMeas: 0, lastMeas: 0
+};
+
 export let PlayerCanvas = function (canvas) {
   this.getTime = () => 0;
   this.isStarted = () => false;
-  this.setUnits([""]);
-  this.evels = [];
-  this.master = { beatNum: 4, beatTempo: 120, beatClock: 480, measNum: 1, repeatMeas: 0, lastMeas: 0 };
+  this.setData([""], [], DEFAULT_MASTER);
   this.measureWidth = 192;
   this.unitOffsetY = 32;
   this.canvas = canvas;
   this.canvas.getContext('2d').imageSmoothingEnabled = false;
+}
+
+PlayerCanvas.prototype.setData = function(units, evels, master) {
+  this.setUnits(units);
+
+  let totalClock = master.beatClock * master.beatNum * master.measNum;
+  this.notesIndex = new IntervalTree(totalClock/2);
+  for (let i = 0; i < evels.length; ++i) {
+    switch (evels[i].kind) {
+      case "ON":
+        this.notesIndex.add(evels[i].clock, evels[i].clock + evels[i].value, i);
+        break;
+      default:
+        break;
+    }
+  }
+
+  this.evels = evels;
+  this.master = master;
 }
 
 PlayerCanvas.prototype.setUnits = function (units) {
@@ -177,9 +201,13 @@ PlayerCanvas.prototype.drawTimeline = function (currBeat, dimensions) {
   ctx.fillStyle = "#F08000";
   // TODO: use interval tree to get the relevant notes to render
   // else it lags on big things
-  for (let e of this.evels) {
+  // clock at left/right bound of visible area
+  let leftBound = canvasOffsetX * clockPerPx;
+  let rightBound = (canvasOffsetX + dimensions.w) * clockPerPx;
+  this.notesIndex.rangeSearch(leftBound, rightBound).forEach((interval) => {
+    let e = this.evels[interval.id];
     if (e.kind != "ON")
-      continue;
+      return;
     let playing = (this.isStarted() && e.clock <= currClock && e.clock + e.value > currClock);
     if (playing) {
       ctx.save();
@@ -187,7 +215,7 @@ PlayerCanvas.prototype.drawTimeline = function (currBeat, dimensions) {
     }
     drawUnitNote(ctx, e.clock / clockPerPx, e.unit_no * 16 + 8 + this.unitOffsetY, e.value / clockPerPx);
     if (playing) ctx.restore();
-  }
+  });
 
   // - playhead -
   ctx.save(); // playhead position
