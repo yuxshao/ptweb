@@ -79,12 +79,12 @@ output > p {
   border-color: transparent transparent transparent black;
 }
 
-.stop {
+.pause {
   width: 20px;
   height: 20px;
 }
 
-.stop::before {
+.pause::before {
   position: absolute;
   content: "";
   transform: translateX(1px);
@@ -94,7 +94,7 @@ output > p {
   background: gray;
 }
 
-.stop::after {
+.pause::after {
   position: absolute;
   content: "";
   transform: translateX(9px);
@@ -104,11 +104,26 @@ output > p {
   background: gray;
 }
 
-.stop.disabled::before, .stop.disabled::after {
+.pause.disabled::before, .pause.disabled::after {
   background: black;
 }
 
-.stop:not(.disabled):hover::before, .stop:not(.disabled):hover::after {
+.pause:not(.disabled):hover::before, .pause:not(.disabled):hover::after {
+  background: black;
+}
+
+.stopButton:not(.disabled) {
+  cursor: pointer;
+}
+
+.stop {
+  width: 20px;
+  height: 20px;
+  background: gray;
+  margin: 20px;
+}
+
+.stop.disabled, .stop:not(.disabled):hover {
   background: black;
 }
 

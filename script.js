@@ -22,7 +22,8 @@ ctx.decodePxtoneStream = pxtone.decodePxtoneStream.bind(pxtone, ctx);
 
 // DOM
 const file            = document.querySelector("#drop > input[type='file']");
-const button          = document.querySelector(".playerButton");
+const playBtn         = document.querySelector(".playerButton");
+const stopBtn         = document.querySelector(".stopButton");
 const volumeSlider    = document.querySelector("#volumeSlider");
 const volumeIndicator = document.querySelector("#volumeIndicator");
 const zoomSelect      = document.querySelector("#zoomSelect");
@@ -54,12 +55,17 @@ const escapeHTML = (() => {
 })();
 
 function updateButtonDisplay() {
+  if (currentAudioPlayer.isStarted())
+    stopBtn.classList.remove("disabled");
+  else
+    stopBtn.classList.add("disabled");
+
   if (currentAudioPlayer.isSuspended()) {
-    button.classList.remove("stop");
-    button.classList.add("play");
+    playBtn.classList.remove("pause");
+    playBtn.classList.add("play");
   } else {
-    button.classList.remove("play");
-    button.classList.add("stop");
+    playBtn.classList.remove("play");
+    playBtn.classList.add("pause");
   }
 }
 
@@ -69,13 +75,22 @@ async function stopAudio()   { await currentAudioPlayer.stop();   updateButtonDi
 
 // button
 const playerStateChange = async () => {
-  if (button.classList.contains("disabled")) return;
-  button.classList.add("disabled");
+  if (playBtn.classList.contains("disabled")) return;
+  playBtn.classList.add("disabled");
   if (currentAudioPlayer.isSuspended()) await resumeAudio();
   else await pauseAudio();
-  button.classList.remove("disabled");
+  playBtn.classList.remove("disabled");
 };
-button.addEventListener("click", playerStateChange);
+playBtn.addEventListener("click", playerStateChange);
+
+const playerStop = async () => {
+  if (stopBtn.classList.contains("disabled")) return;
+  stopBtn.classList.add("disabled");
+  if (currentAudioPlayer.stop()) await stopAudio();
+  stopBtn.classList.remove("disabled");
+  updateButtonDisplay();
+}
+stopBtn.addEventListener("click", playerStop);
 
 // volume slider
 const updateVolume = (_e) => {

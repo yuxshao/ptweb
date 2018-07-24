@@ -5,7 +5,8 @@ const BUFFER_DURATION_DEFAULT = 1.6;
 function emptyStream(ctx) {
   return {
     next: (duration) => ctx.createBuffer(1, 44100*duration, 44100),
-    release: () => null
+    release: () => null,
+    reset: () => null
   };
 }
 
@@ -58,6 +59,8 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
 
   this.stop = async function () {
     await this.pause();
+    stream.reset(0);
+    startTime = ctx.currentTime;
     // make sure to detach the event handlers that start the next chunk
     for (let src of sources) { src.onended = () => null; src.stop(); }
     is_started = false;
