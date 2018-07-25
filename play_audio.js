@@ -1,5 +1,7 @@
 // streaming ptcop audio player with basic controls and timekeeping (e.g. loops)
 
+import { Mutex } from "./mutex/Mutex.js"
+
 const BUFFER_DURATION_DEFAULT = 1.6;
 
 function emptyStream(ctx) {
@@ -14,6 +16,10 @@ async function sleep (ms) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// issue: some nasty player bug where if you have a big enough file that causes
+// the player to be slow to respond and try to do a bunch of actions like loading
+// file / playing all at once, the chunk order gets mangled (presumably
+// clearBuffers doesn't clear all the buffers).
 export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_DEFAULT) {
   let sources = [];
   let gainNode = ctx.createGain();
@@ -22,15 +28,18 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
   let is_started = null, is_suspended = null, startTime = null;
   stream = stream || emptyStream(ctx);
 
-  // TODO: allow seek functionality
-  // you'll need it if you want to do stop and then start
-  this.start = async function () {
-    await this.stop();
-    // schedule buffer i+2 after buffer i finishes.
-    // this way there's no delay between buffers
-    // issue: in some songs with sparser sounds there's a tiny blip during chunk
-    //        change. i've made it as smooth as possible to the best of my
-    //        knowledge so idk what to do here.
+  // detach the event handlers that start the next chunk when stopping
+  function clearBuffers() {
+    for (let src of sources) { src.onended = () => null; src.stop(); }
+  }
+
+  // each of the player control fns are sequential, but block, so we need a
+  // a mutex to avoid race conditions from outside
+  const mutex = new Mutex();
+
+  let start = async function () {
+    await stop();
+    // schedule buffer i+2 after buf i finishes so there's no delay between bufs
     async function nextChunk(time, prev) {
       let buffer = await stream.next(buffer_duration);
       let src = ctx.createBufferSource();
@@ -41,7 +50,7 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
       prev.onended = (_e) => {
         let i = sources.indexOf(prev);
         if (i > -1) sources.splice(i, 1);
-        nextChunk(time + buffer_duration, src);
+        return nextChunk(time + buffer_duration, src);
       }
     }
 
@@ -51,50 +60,71 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
     // schedule the first buffer
     await nextChunk(startTime, dummy);
     // also schedule 2nd buffer immediately (when buffer '0' finishes)
-    dummy.onended(null);
+    await dummy.onended(null);
     is_started = true;
 
-    await this.resume();
+    await resume();
   }
 
-  this.stop = async function () {
-    await this.pause();
-    stream.reset(0);
+  let stop = async function () {
+    await pause();
+    if (!is_started) return;
+    await stream.reset(0);
     startTime = ctx.currentTime;
-    // make sure to detach the event handlers that start the next chunk
-    for (let src of sources) { src.onended = () => null; src.stop(); }
+    clearBuffers();
     is_started = false;
   }
 
-  this.release = function () {
-    stream.release();
-  }
-
-  this.pause = async function () {
+  let pause = async function () {
     is_suspended = true;
     await ctx.suspend();
   }
 
-  this.resume = async function () {
+  let resume = async function () {
     is_suspended = false;
     // a short delay makes it easier to hear the song start after a mouse click
     if (is_started) {
       await sleep(100);
       await ctx.resume();
     }
-    else await this.start();
+    else await start();
   }
+
+  let release = async () => {
+    // nullify all future control commands
+    this.start = () => null; this.stop   = () => null;
+    this.pause = () => null; this.resume = () => null;
+
+    await pause();
+    clearBuffers(); // cleared after pause so no event gets triggered in process
+    await stream.release();
+  }
+
+  let guarded = (f) => {
+    return async () => {
+      const release = await mutex.acquire();
+      try { await f(); } finally { release(); }
+    };
+  }
+  this.start   = guarded(start);
+  this.stop    = guarded(stop);
+  this.pause   = guarded(pause);
+  this.resume  = guarded(resume);
+  this.release = guarded(release);
 
   this.setVolume = function (volume) {
     gainNode.gain.setValueAtTime(volume, ctx.currentTime);
   }
 
-  // can't use ctx.state because updates are delayed/async
-  this.isSuspended = () => is_suspended;
-  this.isStarted   = () => is_started;
+  // can't use ctx.state in place of is_suspended because updates are delayed/async
+  this.isStarted    = () => is_started;
 
   // initialize player state
-  this.stop().then(() => { startTime = ctx.currentTime; });
+  this.isSuspended = () => true;
+  this.stop().then(() => {
+    this.isSuspended  = () => is_suspended;
+    startTime = ctx.currentTime;
+  });
 
   // current time along the song (according to actual audio context)
   this.getCurrentTime = () => ctx.currentTime - startTime;

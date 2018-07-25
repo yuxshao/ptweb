@@ -54,8 +54,9 @@ const escapeHTML = (() => {
   };
 })();
 
+let loadingFile = false;
 function updateButtonDisplay() {
-  if (currentAudioPlayer.isStarted())
+  if (currentAudioPlayer.isStarted() && !loadingFile)
     stopBtn.classList.remove("disabled");
   else
     stopBtn.classList.add("disabled");
@@ -67,6 +68,9 @@ function updateButtonDisplay() {
     playBtn.classList.remove("play");
     playBtn.classList.add("pause");
   }
+
+  if (loadingFile) playBtn.classList.add("disabled");
+  else playBtn.classList.remove("disabled");
 }
 
 async function resumeAudio() { await currentAudioPlayer.resume(); updateButtonDisplay(); }
@@ -115,20 +119,23 @@ scaleSelect.addEventListener("input", updateScale);
 updateScale(null);
 
 async function reader$onload() {
-  stopAudio();
+  loadingFile = true;
+  await currentAudioPlayer.release();
+  updateButtonDisplay();
 
   let {stream, master, units, evels, data} = await ctx.decodePxtoneStream(this.result);
 
   pxtnTitle.innerHTML = escapeHTML(data.title) || "no name";
   pxtnComment.innerHTML = escapeHTML(data.comment).replace(/[\n\r]/g, "<br>") || "no comment";
 
-  currentAudioPlayer.release();
   currentAudioPlayer = new AudioPlayer(stream, ctx);
   updateVolume(null);
 
   myPlayerCanvas.getTime = currentAudioPlayer.getCurrentTime;
   myPlayerCanvas.isStarted = currentAudioPlayer.isStarted;
   myPlayerCanvas.setData(units, evels, master);
+  loadingFile = false;
+  updateButtonDisplay();
 }
 
 // input Pxtone Collage file
