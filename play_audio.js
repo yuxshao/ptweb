@@ -1,6 +1,6 @@
 // streaming ptcop audio player with basic controls and timekeeping (e.g. loops)
 
-import { Mutex } from "./mutex/Mutex.js"
+import { Mutex } from "./lib/Mutex.js"
 
 const BUFFER_DURATION_DEFAULT = 1.6;
 

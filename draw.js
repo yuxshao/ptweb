@@ -1,7 +1,6 @@
 "use strict";
 
-import { IntervalTree } from "./interval-tree/interval-tree.js"
-import { SortedList }   from "./interval-tree/sorted-list.js"
+import { SortedList } from "./lib/sorted-list.js"
 
 const canvas = document.getElementById('player');
 
@@ -132,10 +131,10 @@ PlayerCanvas.prototype.setData = function(units, evels, master) {
   for (let i = 0; i < evels.length; ++i) {
     let e = evels[i];
     switch (e.kind) {
-      case "ON":       this.notes[e.unit_no].insert(i); break;
-      case "VELOCITY": this.vels [e.unit_no].insert(i); break;
-      case "VOLUME":   this.vols [e.unit_no].insert(i); break;
-      case "KEY":      this.keys [e.unit_no].insert(i); break;
+      case "ON":       this.notes[e.unit_no].push(i); break;
+      case "VELOCITY": this.vels [e.unit_no].push(i); break;
+      case "VOLUME":   this.vols [e.unit_no].push(i); break;
+      case "KEY":      this.keys [e.unit_no].push(i); break;
       default: break;
     }
   }
