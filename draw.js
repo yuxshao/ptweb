@@ -120,7 +120,7 @@ PlayerCanvas.prototype.setData = function(units, evels, master) {
   this.notesIndex = new IntervalTree(totalClock/2);
   this.volumes = new Array(units.length);
   for (let i = 0; i < units.length; ++i)
-    this.volumes[i] = new SortedList("clock");
+    this.volumes[i] = new SortedList((x) => x.clock);
 
   // function to call in increasing clock order to assign velocities to on events
   let assignNoteVel = (() => {

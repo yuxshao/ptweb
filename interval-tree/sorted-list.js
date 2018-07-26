@@ -1,167 +1,100 @@
+/** adapted from interval-tree2.SortedList */
 
-/**
-extended array of objects, always sorted
-
-@class SortedList
-@extends Array
-@module interval-tree2
- */
-var SortedList,
-  extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
-  hasProp = {}.hasOwnProperty;
-
-SortedList = (function(superClass) {
-  extend(SortedList, superClass);
-
-
+export class SortedList extends Array {
   /**
   @constructor
   @param {String} compareKey key name to compare objects. The value of the key must be a number.
+  @param {Array} init a sorted array to start with.
    */
-
-
-  /**
-  key name to compare objects. The value of the key must be a number.
-  @property {String} compareKey
-   */
-
-  function SortedList(compareKey) {
-    this.compareKey = compareKey;
+  constructor (getKey, init = []) {
+    super(init.length);
+    for (let i = 0; i < init.length - 1; ++i) {
+      this[i] = init[i];
+      if (getKey(init[i]) > getKey(init[i + 1]))
+        throw "passed in unsorted array";
+    }
+    if (init.length > 0)
+      this[init.length-1] = init[init.length-1];
+    this.getKey = getKey;
   }
 
 
   /**
   insert a value
-  
+
   @method insert
   @param {any} val
   @return {Number} inserted position
    */
 
-  SortedList.prototype.insert = function(val) {
-    var pos;
-    pos = this.bsearch(val);
-    this.splice(pos + 1, 0, val);
+  insert (obj) {
+    let pos = this.bsearch(this.getKey(obj));
+    this.splice(pos + 1, 0, obj);
     return pos + 1;
   };
 
 
   /**
   remove the value in the given position
-  
+
   @method remove
   @param {Number} pos position
   @return {SortedList} self
    */
 
-  SortedList.prototype.remove = function(pos) {
+  remove (pos) {
     this.splice(pos, 1);
     return this;
   };
 
-
-  /**
-  get maximum value in the list
-  
-  @method max
-  @return {Number}
-   */
-
-  SortedList.prototype.max = function() {
-    var ref;
-    return (ref = this[this.length - 1]) != null ? ref[this.compareKey] : void 0;
-  };
-
-
-  /**
-  get minimum value in the list
-  
-  @method min
-  @return {Number}
-   */
-
-  SortedList.prototype.min = function() {
-    var ref;
-    return (ref = this[0]) != null ? ref[this.compareKey] : void 0;
-  };
-
-
   /**
   binary search
   if value exists, returns position of some instance with value
-  else, returns largest thing < val
+  else, returns position of last thing < val
+  if length is 0, return -1
+  (so you can imagine something with -inf value at position -1)
 
   @method bsearch
   @param {any} val
   @return {Number} position of the value
    */
 
-  SortedList.prototype.bsearch = function(val) {
-    var comp, epos, mpos, mval, spos;
-    if (!this.length) {
-      return -1;
-    }
-    mpos = null;
-    mval = null;
-    spos = 0;
-    epos = this.length;
-    // epos > spos always. every iteration the distance decreases
+  bsearch (val) {
+    // console.log(val);
+    if (this.length === 0) return -1;
+    // consider this[-1] = -inf, this[this.length] = inf
+    let spos = -1;
+    let epos = this.length;
+    // invariant: this[epos] > val > this[spos]. distance decreases each iteration
     while (epos - spos > 1) {
-      mpos = Math.floor((spos + epos) / 2);
-      mval = this[mpos];
-      comp = this.compare(val, mval);
-      if (comp === 0) {
-        return mpos;
-      }
-      if (comp > 0) {
-        spos = mpos;
-      } else {
-        epos = mpos;
-      }
+      let mpos = Math.floor((spos + epos) / 2);
+      let comp = val - this.getKey(this[mpos]);
+      if (comp > 0) spos = mpos;
+      else if (comp < 0) epos = mpos;
+      else return mpos;
     }
-    // epos = spos + 1 but it wasn't found
-    if (spos === 0 && this.compare(this[0], val) > 0) {
-      // even the smallest element is too big
-      return -1;
-    } else {
-      // smallest element is not too big
-      return spos;
-    }
+    // epos = spos + 1 and this[epos] > val > this[spos], but it wasn't found
+    // so closest thing under it is spos
+    return spos;
   };
 
 
   /**
   first thing >= val
-  
+
   @method firstPositionOf
   @param {any} val
   @return {Number} leftmost position of the value
    */
 
-  SortedList.prototype.firstPositionOf = function(val) {
-    var index, num, ref;
-    index = this.bsearch(val);
-    if (index === -1) {
-      return 0; /* edited - should not be -1 */
-    }
-    if (index === this.length - 1 && num > this.max()) {
+  firstPositionOf (val) {
+    let index = this.bsearch(val);
+    // bsearch could not find key. return one more than the last thing < val
+    if (index === -1 || val > this.getKey(this[index]))
       return index + 1;
-    }
-    num = val[this.compareKey];
-    ref = this[index]
-    if (num === ((ref = this[index]) != null ? ref[this.compareKey] : void 0)) {
-      while (true) {
-        if (index <= 0) {
-          break;
-        }
-        if (this[index - 1][this.compareKey] < num) {
-          break;
-        }
-        index--;
-      }
-    } else {
-      index++;
-    }
+    // bsearch did find key. go down until you reach the first instance of key
+    while (index > 0 && this.getKey(this[index-1]) >= val)
+      index--;
     return index;
   };
 
@@ -174,25 +107,16 @@ SortedList = (function(superClass) {
   @return {Number} rightmost position of the value
    */
 
-  SortedList.prototype.lastPositionOf = function(val) {
-    var index, num;
-    index = this.bsearch(val);
-    if (index === -1) {
-      return -1;
-    }
-    num = val[this.compareKey];
-    while (true) {
-      if (index + 1 >= this.length) {
-        break;
-      }
-      if (this[index + 1][this.compareKey] > num) {
-        break;
-      }
+  lastPositionOf (val) {
+    let index = this.bsearch(val);
+    // bsearch could not find key, so index is last thing < val.
+    if (index === -1 || val > this.getKey(this[index]))
+      return index;
+    // bsearch did find key. go up until you reach last instance of key
+    while (index < this.length - 1 && this.getKey(this[index+1]) <= val)
       index++;
-    }
     return index;
   };
-
 
   /**
    * sorted.toArray()
@@ -200,40 +124,5 @@ SortedList = (function(superClass) {
    *
    */
 
-  SortedList.prototype.toArray = function() {
-    return this.slice();
-  };
-
-
-  /**
-  comparison function. Compares two objects by this.compareKey
-  
-  @method compare
-  @private
-  @param {any} a
-  @param {any} b
-   */
-
-  SortedList.prototype.compare = function(a, b) {
-    var c;
-    if (a == null) {
-      return -1;
-    }
-    if (b == null) {
-      return 1;
-    }
-    c = a[this.compareKey] - b[this.compareKey];
-    if (c > 0) {
-      return 1;
-    } else if (c === 0) {
-      return 0;
-    } else {
-      return -1;
-    }
-  };
-
-  return SortedList;
-
-})(Array);
-
-export { SortedList };
+  toArray () { return this.slice(); }
+};

@@ -36,14 +36,14 @@ export let Node = (function() {
     
     @property {SortedList(Interval)} starts
      */
-    this.starts = new SortedList('start');
+    this.starts = new SortedList((x) => x.start);
 
     /**
     sorted list of Intervals, sorting them by their end property
     
     @property {SortedList(Interval)} ends
      */
-    this.ends = new SortedList('end');
+    this.ends = new SortedList((x) => x.end);
   }
 
 
@@ -81,10 +81,7 @@ export let Node = (function() {
    */
 
   Node.prototype.startPointSearch = function(val) {
-    var index;
-    index = this.starts.lastPositionOf({
-      start: val
-    });
+    let index = this.starts.lastPositionOf(val);
     return this.starts.slice(0, index + 1);
   };
 
@@ -98,10 +95,7 @@ export let Node = (function() {
    */
 
   Node.prototype.endPointSearch = function(val) {
-    var index;
-    index = this.ends.firstPositionOf({
-      end: val
-    });
+    let index = this.ends.firstPositionOf(val);
     return this.ends.slice(index);
   };
 
@@ -143,7 +137,7 @@ export let Node = (function() {
 
   Node.prototype.removeFromList = function(interval, list) {
     var candidate, firstPos, i, idx, ref, ref1, results;
-    firstPos = list.firstPositionOf(interval);
+    firstPos = list.firstPositionOf(list.getKey(interval));
     results = [];
     for (idx = i = ref = firstPos, ref1 = list.length; ref <= ref1 ? i < ref1 : i > ref1; idx = ref <= ref1 ? ++i : --i) {
       candidate = list[idx];

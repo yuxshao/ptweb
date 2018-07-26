@@ -54,7 +54,7 @@ export let IntervalTree = (function() {
     
     @property {SortedList(Point)} pointTree
      */
-    this.pointTree = new SortedList('val');
+    this.pointTree = new SortedList((x) => x.val);
 
     /**
     unique id candidate of interval without id to be added next time
@@ -204,11 +204,9 @@ export let IntervalTree = (function() {
       interval = ref[i];
       resultsById[interval.id] = interval;
     }
-    firstPos = this.pointTree.firstPositionOf(new Point(start));
-    // console.log("first", firstPos);
-    lastPos = this.pointTree.lastPositionOf(new Point(end));
+    firstPos = this.pointTree.firstPositionOf(start);
+    lastPos = this.pointTree.lastPositionOf(end);
     if (lastPos < firstPos) return []; // probably not needed but who knows at this point
-    // console.log("lst", lastPos);
     ref1 = this.pointTree.slice(firstPos, lastPos + 1);
     for (j = 0, len1 = ref1.length; j < len1; j++) {
       point = ref1[j];
