@@ -16,10 +16,10 @@ async function sleep (ms) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// issue: some nasty player bug where if you have a big enough file that causes
-// the player to be slow to respond and try to do a bunch of actions like loading
-// file / playing all at once, the chunk order gets mangled (presumably
-// clearBuffers doesn't clear all the buffers).
+// issue: https://bugzilla.mozilla.org/show_bug.cgi?id=1375562
+// since this player uses suspend to pause, an unexpected resume messes with
+// chunk order (e.g. open up dev tools while paused). need to either not rely
+// on ctx.suspend, or catch when a resume occurs
 export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_DEFAULT) {
   let sources = [];
   let gainNode = ctx.createGain();
