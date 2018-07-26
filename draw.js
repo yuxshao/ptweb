@@ -91,7 +91,6 @@ const BASE_MEASURE_WIDTH = 192;
 export let PlayerCanvas = function (canvas) {
   this.unitOffsetY = 32;
   this.canvas = canvas;
-  let ctx = this.canvas.getContext('2d');
 
   this.getTime = () => 0;
   this.isStarted = () => false;
@@ -113,54 +112,33 @@ PlayerCanvas.prototype.setScale = function (scale) {
 };
 
 PlayerCanvas.prototype.setData = function(units, evels, master) {
+  this.master = master;
   this.setUnits(units);
+  this.evels = evels;
 
   let totalClock = master.beatClock * master.beatNum * master.measNum;
-  this.notes = [];
-  this.notesIndex = new IntervalTree(totalClock/2);
-  this.volumes = new Array(units.length);
-  for (let i = 0; i < units.length; ++i)
-    this.volumes[i] = new SortedList((x) => x.clock);
+  this.presses = new IntervalTree(totalClock/2);
+  this.vels = new Array(units.length);
+  this.vols = new Array(units.length);
+  this.keys = new Array(units.length);
+  let that = this;
+  for (let i = 0; i < units.length; ++i) {
+    this.vels[i] = new SortedList((x) => evels[x].clock);
+    this.vols[i] = new SortedList((x) => evels[x].clock);
+    this.keys[i] = new SortedList((x) => evels[x].clock);
+  }
 
-  // function to call in increasing clock order to assign velocities to on events
-  let assignNoteVel = (() => {
-    let latestNotes = (new Array(units.length)).fill(null);
-    let latestVels  = (new Array(units.length)).fill(null);
-    return (function(note, vel) {
-      let unit_no = null;
-      if (note !== null) {
-        unit_no = note.unit_no;
-        latestNotes[unit_no] = note;
-      }
-      if (vel !== null) {
-        unit_no = vel.unit_no;
-        latestVels[unit_no] = vel;
-      }
-      if (latestNotes[unit_no] !== null && latestVels[unit_no] !== null
-          && latestNotes[unit_no].clock == latestVels[unit_no].clock)
-        latestNotes[unit_no].vel = latestVels[unit_no].value;
-    })
-  })();
-
-  for (let e of evels) {
+  for (let i = 0; i < evels.length; ++i) {
+    let e = evels[i];
     switch (e.kind) {
-      case "ON":
-        assignNoteVel(e, null);
-        this.notes.push(e);
-        this.notesIndex.add(e.clock, e.clock + e.value, this.notes.length-1);
-        break;
-      case "VELOCITY":
-        assignNoteVel(null, e);
-        break;
-      case "VOLUME":
-        this.volumes[e.unit_no].insert(e);
-        break;
-      default:
-        break;
+      case "ON": this.presses.add(e.clock, e.clock + e.value, i); break;
+      case "VELOCITY": this.vels[e.unit_no].insert(i); break;
+      case "VOLUME":   this.vols[e.unit_no].insert(i); break;
+      case "KEY":      this.keys[e.unit_no].insert(i); break;
+      default: break;
     }
   }
 
-  this.master = master;
 }
 
 PlayerCanvas.prototype.setUnits = function (units) {
@@ -172,14 +150,21 @@ PlayerCanvas.prototype.updateCanvasHeight = function () {
   let l = Math.ceil(this.units.length/10) * 10;
   canvas.height = (unitbars.regular_rect.h * l + unitbars.top_rect.h) * this.scale;
 }
-PlayerCanvas.prototype.volumeAt = function (unit_no, clock) {
-  let i = this.volumes[unit_no].lastPositionOf({ clock: clock });
-  if (i == -1) return DEFAULT_VOLUME;
-  return this.volumes[unit_no][i].value;
+
+PlayerCanvas.prototype.velocityAt = function (unit_no, clock) {
+  let i = this.vels[unit_no].lastPositionOf(clock);
+  if (i == -1) return DEFAULT_VELOCITY;
+  return this.evels[this.vels[unit_no][i]].value;
 }
 
-PlayerCanvas.prototype.drawUnits = function () {
-  let ctx = this.canvas.getContext('2d');
+PlayerCanvas.prototype.volumeAt = function (unit_no, clock) {
+  let i = this.vols[unit_no].lastPositionOf(clock);
+  if (i == -1) return DEFAULT_VOLUME;
+  return this.evels[this.vols[unit_no][i]].value;
+}
+
+PlayerCanvas.prototype.drawUnitList = function () {
+  let ctx = this.ctx();
   // top
   drawImageRect(ctx, unitbars, unitbars.top_rect, 0, 0);
 
@@ -207,33 +192,12 @@ PlayerCanvas.prototype.drawUnits = function () {
   ctx.translate(0, -this.unitOffsetY);
 }
 
-PlayerCanvas.prototype.drawTimeline = function (currBeat, dimensions) {
-  let currClock = currBeat * this.master.beatClock;
-  let ctx = this.canvas.getContext('2d');
+PlayerCanvas.prototype.drawPianoRoll = function (currBeat, unit_no, dimensions) {
 
-  // - back -
-  // global transform
-  ctx.save(); // song position shift
+}
 
-  let shiftX = Math.floor(dimensions.w/2);
-  let playX;
-  switch (this.snap) {
-    case 'beat':
-      playX = middleSnap(currBeat) / this.master.beatNum * this.measureWidth;
-      break;
-    case 'meas':
-      playX = middleSnap(currBeat / this.master.beatNum) * this.measureWidth;
-      break;
-    default:
-      playX = currBeat / this.master.beatNum * this.measureWidth;
-      break;
-  }
-  ctx.translate(shiftX, 0);
-  ctx.translate(-playX, 0);
-
-  let canvasOffsetX = playX - shiftX;
-
-  // - rulers -
+PlayerCanvas.prototype.drawRulers = function(canvasOffsetX, dimensions) {
+  let ctx = this.ctx();
   let start; // used to get the ruler offsets in the scroll view
   // beat lines
   ctx.fillStyle = "#808080";
@@ -277,40 +241,79 @@ PlayerCanvas.prototype.drawTimeline = function (currBeat, dimensions) {
   start = Math.floor(canvasOffsetX / this.measureWidth);
   for (let i = 0; i < dimensions.w / this.measureWidth + 1; ++i)
     ctx.fillRect((i + start) * this.measureWidth, 0, 1, dimensions.h);
+}
 
-  // unit rows
-  start = canvasOffsetX;
+PlayerCanvas.prototype.clockPerPx = function () {
+  return this.master.beatClock * this.master.beatNum / this.measureWidth;
+}
 
-  ctx.fillStyle = "#400070"; // unit rows
-  for (let i = 0; i < this.units.length; ++i) {
-    ctx.fillRect(start, i*16 + 1 + this.unitOffsetY, dimensions.w, 15);
-  }
+PlayerCanvas.prototype.ctx = function () {
+  return this.canvas.getContext('2d');
+}
 
-  // notes
-  let clockPerPx = this.master.beatClock * this.master.beatNum / this.measureWidth;
-  ctx.fillStyle = "#F08000";
-  // TODO: use interval tree to get the relevant notes to render
-  // else it lags on big things
-  // clock at left/right bound of visible area
-  let leftBound = canvasOffsetX * clockPerPx;
-  let rightBound = (canvasOffsetX + dimensions.w) * clockPerPx;
-  this.notesIndex.rangeSearch(leftBound, rightBound).forEach((interval) => {
-    let e = this.notes[interval.id];
-    let playing = (this.isStarted() && e.clock <= currClock && e.clock + e.value > currClock);
-
-    ctx.fillStyle = noteColor(playing, e.vel, this.volumeAt(e.unit_no, currClock));
-    drawUnitNote(ctx, e.clock / clockPerPx, e.unit_no * 16 + 8 + this.unitOffsetY, e.value / clockPerPx);
-  });
-
-  // - playhead -
+PlayerCanvas.prototype.drawPlayhead = function(currBeat, dimensions) {
+  let ctx = this.ctx();
   ctx.save(); // playhead position
   ctx.fillStyle = "#FFFFFF";
-  ctx.translate(currClock / clockPerPx, 23);
+  let currClock = currBeat * this.master.beatClock;
+  ctx.translate(currClock / this.clockPerPx(), 23);
   ctx.drawImage(playhead, -playhead.centre.x, -playhead.centre.y);
   ctx.fillRect(0, 0, 1, dimensions.h);
   ctx.restore(); // playhead position
+}
 
-  ctx.restore(); // song position shift
+// how much to translate by so that approximately the current time is in view
+PlayerCanvas.prototype.getSongPositionShift = function(currBeat, dimensions) {
+  let shiftX = Math.floor(dimensions.w/2);
+  let playX;
+  switch (this.snap) {
+    case 'beat':
+      playX = middleSnap(currBeat) / this.master.beatNum * this.measureWidth;
+      break;
+    case 'meas':
+      playX = middleSnap(currBeat / this.master.beatNum) * this.measureWidth;
+      break;
+    default:
+      playX = currBeat / this.master.beatNum * this.measureWidth;
+      break;
+  }
+  return shiftX - playX;
+}
+
+PlayerCanvas.prototype.drawUnitRows = function(canvasOffsetX, currBeat, dimensions) {
+  let currClock = currBeat * this.master.beatClock;
+  let ctx = this.ctx();
+  ctx.fillStyle = "#400070";
+  for (let i = 0; i < this.units.length; ++i) {
+    ctx.fillRect(canvasOffsetX, i*16 + 1 + this.unitOffsetY, dimensions.w, 15);
+  }
+
+  // notes
+  ctx.fillStyle = "#F08000";
+  let clockPerPx = this.clockPerPx();
+  // clock at left/right bound of visible area
+  let leftBound  = clockPerPx * canvasOffsetX;
+  let rightBound = clockPerPx * (canvasOffsetX + dimensions.w);
+  this.presses.rangeSearch(leftBound, rightBound).forEach((interval) => {
+    let e = this.evels[interval.id];
+    let playing = (this.isStarted() && e.clock <= currClock && e.clock + e.value > currClock);
+
+    ctx.fillStyle = noteColor(playing, this.velocityAt(e.unit_no, currClock), this.volumeAt(e.unit_no, currClock));
+    drawUnitNote(ctx, e.clock / clockPerPx, e.unit_no * 16 + 8 + this.unitOffsetY, e.value / clockPerPx);
+  });
+}
+
+PlayerCanvas.prototype.drawTimeline = function (currBeat, dimensions) {
+  this.ctx().save(); // song position shift
+
+  let canvasOffsetX = -this.getSongPositionShift(currBeat, dimensions);
+  this.ctx().translate(-canvasOffsetX, 0);
+
+  this.drawRulers(canvasOffsetX, dimensions);
+  this.drawUnitRows(canvasOffsetX, currBeat, dimensions);
+  this.drawPlayhead(currBeat, dimensions);
+
+  this.ctx().restore(); // song position shift
 }
 
 PlayerCanvas.prototype.draw = function () {
@@ -324,7 +327,7 @@ PlayerCanvas.prototype.draw = function () {
     return (beat - repeatBeat) % (lastBeat - repeatBeat) + repeatBeat;
   })();
   if (currBeat < 0) currBeat = 0;
-  let ctx = this.canvas.getContext('2d');
+  let ctx = this.ctx();
   ctx.imageSmoothingEnabled = false;
 
   ctx.fillStyle = "#000010";
@@ -342,13 +345,13 @@ PlayerCanvas.prototype.draw = function () {
   };
   this.drawTimeline(currBeat, dimensions);
   ctx.restore();
-  this.drawUnits();
+  this.drawUnitList();
 
   ctx.restore(); // widget offset and scale
 }
 
 PlayerCanvas.prototype.drawLoading = function () {
-  let ctx = this.canvas.getContext('2d');
+  let ctx = this.ctx();
   ctx.fillStyle = "#000010";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
