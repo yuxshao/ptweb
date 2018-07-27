@@ -165,13 +165,15 @@ PlayerCanvas.prototype.setUnits = function (units) {
   this.updateCanvasHeight();
 }
 
-const KEYBOARD_NOTE_NUM = 76;
+const KEYBOARD_NOTE_NUM = 88;
 const KEYBOARD_BASE_SHIFT = 39;
+const KEYBOARD_KEY_HEIGHT = 8;
+const KEYBOARD_NOTE_HEIGHT = 4;
 PlayerCanvas.prototype.updateCanvasHeight = function () {
   let height = 0;
   switch (this.view) {
     case "keyboard":
-      height = this.unitOffsetY + 16 * KEYBOARD_NOTE_NUM;
+      height = this.unitOffsetY + KEYBOARD_KEY_HEIGHT * KEYBOARD_NOTE_NUM;
       break;
     case "unit":
     default:
@@ -331,22 +333,25 @@ PlayerCanvas.prototype.drawKeyboardNote = function(ctx, started, unit_no, key, s
   let playing = (started && start <= current && end > current);
   let clockPerPx = this.clockPerPx();
 
-  let offset = KEYBOARD_BASE_SHIFT * 16 + (DEFAULT_KEY - key)/16;
+  let offset = KEYBOARD_KEY_HEIGHT * (KEYBOARD_BASE_SHIFT + (DEFAULT_KEY - key) / 256) - KEYBOARD_NOTE_HEIGHT/2;
   ctx.fillStyle = keyboardNoteColor(playing, this.velocityAt(unit_no, current), this.volumeAt(unit_no, current));
-  ctx.fillRect(start / clockPerPx, 4 + offset, (end - start) / clockPerPx, 8);
+  ctx.fillRect(start / clockPerPx, KEYBOARD_KEY_HEIGHT/2 + offset, (end - start) / clockPerPx, KEYBOARD_NOTE_HEIGHT);
   ctx.fillStyle = noteColor(playing, this.velocityAt(unit_no, current), this.volumeAt(unit_no, current));
-  ctx.fillRect(start / clockPerPx, 4 + offset, 2, 8);
+  ctx.fillRect(start / clockPerPx, KEYBOARD_KEY_HEIGHT/2 + offset, 2, KEYBOARD_NOTE_HEIGHT);
 }
 
 let pianoPattern = [false, true, false, true, false, false, true, false, true, false, false, true];
+PlayerCanvas.prototype.drawKeyboardBack = function(ctx, canvasOffsetX, dimensions) {
+  for (let i = 0; i < dimensions.h / KEYBOARD_KEY_HEIGHT; ++i) {
+    let ind = ((i - KEYBOARD_BASE_SHIFT) % pianoPattern.length + pianoPattern.length) % pianoPattern.length;
+    ctx.fillStyle = (pianoPattern[ind] ? "#202020" : "#404040");
+    ctx.fillRect(canvasOffsetX, i * KEYBOARD_KEY_HEIGHT + 1, dimensions.w, KEYBOARD_KEY_HEIGHT-1);
+  }
+}
+
 PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_no, canvasOffsetX, currBeat, dimensions) {
   let currClock = currBeat * this.master.beatClock;
   let clockPerPx = this.clockPerPx();
-  for (let i = 0; i < dimensions.h / 16; ++i) {
-    let ind = ((i - KEYBOARD_BASE_SHIFT) % pianoPattern.length + pianoPattern.length) % pianoPattern.length;
-    ctx.fillStyle = (pianoPattern[ind] ? "#202020" : "#404040");
-    ctx.fillRect(canvasOffsetX, i * 16 + 1, dimensions.w, 15);
-  }
 
   // clock at left/right bound of visible area
   let leftBound  = clockPerPx * (canvasOffsetX);
@@ -421,7 +426,9 @@ PlayerCanvas.prototype.drawTimeline = function (ctx, currBeat, dimensions) {
     ctx.translate(0, this.unitOffsetY); // top bar offset
     switch (this.view) {
       case "keyboard":
-        this.drawKeyboard(ctx, 0, canvasOffsetX, currBeat, dimensions);
+        this.drawKeyboardBack(ctx, canvasOffsetX, dimensions);
+        for (let i = 0; i < this.units.length; ++i)
+          this.drawKeyboard(ctx, i, canvasOffsetX, currBeat, dimensions);
         break;
       case "unit":
       default:
