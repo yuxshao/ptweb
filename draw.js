@@ -108,8 +108,7 @@ export let PlayerCanvas = function (canvas, getScroll) {
   this.unitOffsetY = 32;
   this.canvas = canvas;
 
-  this.lastTime = null;
-  this.lastScroll = null;
+  this.lastDrawState = {}; // for avoiding redrawing the same thing
   this.getTime = () => 0;
   this.getScroll = () => getScroll() / this.scale;
   this.isStarted = () => false;
@@ -449,11 +448,20 @@ PlayerCanvas.prototype.drawTimeline = function (currBeat, dimensions) {
 }
 
 PlayerCanvas.prototype.needToDraw = function () {
-  if (this.getTime() === this.lastTime && this.getScroll() === this.lastScroll)
-    return false;
-  this.lastScroll = this.getScroll();
-  this.lastTime = this.getTime();
-  return true;
+  let last = this.lastDrawState;
+  let now = {
+    time:   this.getTime(),
+    scroll: this.getScroll(),
+    width:  this.canvas.width,
+    height: this.canvas.height
+  }
+  let need = false;
+  for (let prop in now)
+    if (now[prop] !== last[prop]) {
+      need = true;
+      last[prop] = now[prop];
+    }
+  return need;
 }
 
 const BGCOLOR = "#000010";
