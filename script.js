@@ -9,7 +9,9 @@ const ctx = new (window.AudioContext || window.webkitAudioContext)();
 ctx.suspend();
 
 let currentAudioPlayer = new AudioPlayer(null, ctx);
-let myPlayerCanvas = new PlayerCanvas(document.getElementById('player'));
+
+const getScroll = () => document.getElementById('scrollContainer').scrollTop;
+let myPlayerCanvas = new PlayerCanvas(document.getElementById('player'), getScroll);
 myPlayerCanvas.getTime = currentAudioPlayer.getCurrentTime;
 myPlayerCanvas.drawContinuously();
 

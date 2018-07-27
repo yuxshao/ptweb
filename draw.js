@@ -104,17 +104,21 @@ const DEFAULT_VELOCITY = 104;
 const DEFAULT_KEY      = 0x6000;
 const BASE_MEASURE_WIDTH = 192;
 
-export let PlayerCanvas = function (canvas) {
+export let PlayerCanvas = function (canvas, getScroll) {
   this.unitOffsetY = 32;
   this.canvas = canvas;
 
+  this.lastTime = null;
+  this.lastScroll = null;
   this.getTime = () => 0;
+  this.getScroll = () => getScroll() / this.scale;
   this.isStarted = () => false;
 
   this.setData([""], [], DEFAULT_MASTER);
   this.setZoom(1);
   this.setSnap('meas');
   this.setScale(1);
+  this.view = "keyboard";
 }
 
 PlayerCanvas.prototype.setZoom = function (zoom) {
@@ -163,9 +167,21 @@ PlayerCanvas.prototype.setUnits = function (units) {
   this.updateCanvasHeight();
 }
 
+const KEYBOARD_NOTE_NUM = 76;
+const KEYBOARD_BASE_SHIFT = 39;
 PlayerCanvas.prototype.updateCanvasHeight = function () {
-  let l = Math.ceil(this.units.length/10) * 10;
-  canvas.height = (unitbars.regular_rect.h * l + unitbars.top_rect.h) * this.scale;
+  let height = 0;
+  switch (this.view) {
+    case "keyboard":
+      height = this.unitOffsetY + 16 * KEYBOARD_NOTE_NUM;
+      break;
+    case "unit":
+    default:
+      let l = Math.ceil(this.units.length/10) * 10;
+      height = unitbars.regular_rect.h * l + unitbars.top_rect.h;
+      break;
+  }
+  canvas.height = height * this.scale;
 }
 
 PlayerCanvas.prototype.velocityAt = function (unit_no, clock) {
@@ -186,15 +202,14 @@ PlayerCanvas.prototype.keyAt = function (unit_no, clock) {
   return this.evels[this.keys[unit_no][i]].value;
 }
 
-PlayerCanvas.prototype.drawUnitList = function () {
+PlayerCanvas.prototype.drawUnitList = function (height) {
   let ctx = this.ctx();
-  // top
-  drawImageRect(ctx, unitbars, unitbars.top_rect, 0, 0);
+  this.ctx().translate(0, -this.getScroll()); // subject list to scrolling
 
   // left bar
   ctx.translate(0, this.unitOffsetY);
-  for (let i = 0; i < 5; ++i)
-    drawImageRect(ctx, unitbars, unitbars.side_rect, 0, unitbars.side_rect.h * i);
+  for (let y = 0; y < height; y += unitbars.side_rect.h)
+    drawImageRect(ctx, unitbars, unitbars.side_rect, 0, y);
 
   // rows
   let i;
@@ -204,15 +219,20 @@ PlayerCanvas.prototype.drawUnitList = function () {
   ctx.textAlign = "left";
   for (i = 0; i < this.units.length; ++i) {
     drawImageRect(ctx, unitbars, unitbars.regular_rect, unitbars.side_rect.w, i*unitbars.regular_rect.h);
+    // TODO clip outside of rect
     ctx.fillText(this.units[i],
       unitbars.side_rect.w + 5,
       (i + 0.5) * unitbars.regular_rect.h);
   }
   // 2. empty rows
-  for ( ; i < 50; ++i)
-    drawImageRect(ctx, unitbars, unitbars.nothing_rect, unitbars.side_rect.w, i*unitbars.nothing_rect.h);
+  for (let y = i * unitbars.regular_rect.h; y < height; y += unitbars.regular_rect.h)
+    drawImageRect(ctx, unitbars, unitbars.nothing_rect, unitbars.side_rect.w, y);
 
   ctx.translate(0, -this.unitOffsetY);
+
+  this.ctx().translate(0, this.getScroll());
+  // top
+  drawImageRect(ctx, unitbars, unitbars.top_rect, 0, 0);
 }
 
 const BEATLINE_OFFSET = 25;
@@ -242,7 +262,7 @@ PlayerCanvas.prototype.drawRulers = function(canvasOffsetX, dimensions) {
 PlayerCanvas.prototype.drawMeasureMarkers = function(canvasOffsetX, dimensions) {
   let ctx = this.ctx();
   ctx.fillStyle = BGCOLOR;
-  ctx.fillRect(0, 0, dimensions.w, dimensions.h);
+  ctx.fillRect(canvasOffsetX, 0, dimensions.w, dimensions.h);
   this.drawBeatLines(canvasOffsetX, dimensions);
 
   // measure markers
@@ -320,10 +340,11 @@ PlayerCanvas.prototype.drawKeyboardNote = function(started, unit_no, key, start,
   let clockPerPx = this.clockPerPx();
   let ctx = this.ctx();
 
+  let offset = KEYBOARD_BASE_SHIFT * 16 + (DEFAULT_KEY - key)/16;
   ctx.fillStyle = keyboardNoteColor(playing, this.velocityAt(unit_no, current), this.volumeAt(unit_no, current));
-  ctx.fillRect(start / clockPerPx, 4 + (DEFAULT_KEY - key)/16, (end - start) / clockPerPx, 8);
+  ctx.fillRect(start / clockPerPx, 4 + offset, (end - start) / clockPerPx, 8);
   ctx.fillStyle = noteColor(playing, this.velocityAt(unit_no, current), this.volumeAt(unit_no, current));
-  ctx.fillRect(start / clockPerPx, 4 + (DEFAULT_KEY - key)/16, 2, 8);
+  ctx.fillRect(start / clockPerPx, 4 + offset, 2, 8);
 }
 
 let pianoPattern = [false, true, false, true, false, false, true, false, true, false, false, true];
@@ -332,20 +353,23 @@ PlayerCanvas.prototype.drawKeyboard = function(unit_no, canvasOffsetX, currBeat,
   let clockPerPx = this.clockPerPx();
   let ctx = this.ctx();
   for (let i = 0; i < dimensions.h / 16; ++i) {
-    ctx.fillStyle = (pianoPattern[i % pianoPattern.length] ? "#202020" : "#404040");
+    let ind = ((i - KEYBOARD_BASE_SHIFT) % pianoPattern.length + pianoPattern.length) % pianoPattern.length;
+    ctx.fillStyle = (pianoPattern[ind] ? "#202020" : "#404040");
     ctx.fillRect(canvasOffsetX, i * 16 + 1, dimensions.w, 15);
   }
 
   // clock at left/right bound of visible area
-  let leftBound  = clockPerPx * canvasOffsetX;
+  let leftBound  = clockPerPx * (canvasOffsetX);
   let rightBound = clockPerPx * (canvasOffsetX + dimensions.w);
 
-  let currentKey = this.keyAt(unit_no, leftBound);
+  let notes = this.notes[unit_no];
+  if (notes.length === 0) return;
+  let startIdx = notes[Math.max(notes.lastPositionOf(leftBound), 0)];
+
+  let currentKey = this.keyAt(unit_no, this.evels[startIdx].clock);
   let noteStart = Infinity, noteEnd = Infinity;
   let drawNote = (end) => this.drawKeyboardNote(this.isStarted(), unit_no, currentKey, noteStart, end, currClock);
-  for (let i = Math.max(this.notes[unit_no].lastPositionOf(leftBound), 0);
-       i < this.evels.length && this.evels[i].clock < rightBound;
-       ++i) {
+  for (let i = startIdx; i < this.evels.length && this.evels[i].clock < rightBound; ++i) {
     let e = this.evels[i];
     if (e.unit_no !== unit_no) continue;
     if (e.clock >= noteEnd) { // if at end of note, draw just-finished note
@@ -363,7 +387,7 @@ PlayerCanvas.prototype.drawKeyboard = function(unit_no, canvasOffsetX, currBeat,
       default: break;
     }
   }
-  if (rightBound >= noteEnd) drawNote(noteEnd);
+  if (rightBound >= noteStart) drawNote(noteEnd); // draw the note continuation at end
 }
 
 PlayerCanvas.prototype.drawUnitRows = function(canvasOffsetX, currBeat, dimensions) {
@@ -404,8 +428,17 @@ PlayerCanvas.prototype.drawTimeline = function (currBeat, dimensions) {
 
   this.ctx().translate(0, this.unitOffsetY); // top bar offset
 
-  this.drawUnitRows(canvasOffsetX, currBeat, dimensions);
-  // this.drawKeyboard(0, canvasOffsetX, currBeat, dimensions);
+  this.ctx().translate(0, -this.getScroll());
+  switch (this.view) {
+    case "keyboard":
+      this.drawKeyboard(0, canvasOffsetX, currBeat, dimensions);
+      break;
+    case "unit":
+    default:
+      this.drawUnitRows(canvasOffsetX, currBeat, dimensions);
+      break;
+  }
+  this.ctx().translate(0, this.getScroll());
 
   this.ctx().translate(0, -this.unitOffsetY);
 
@@ -415,8 +448,18 @@ PlayerCanvas.prototype.drawTimeline = function (currBeat, dimensions) {
   this.ctx().restore(); // song position shift
 }
 
+PlayerCanvas.prototype.needToDraw = function () {
+  if (this.getTime() === this.lastTime && this.getScroll() === this.lastScroll)
+    return false;
+  this.lastScroll = this.getScroll();
+  this.lastTime = this.getTime();
+  return true;
+}
+
 const BGCOLOR = "#000010";
 PlayerCanvas.prototype.draw = function () {
+  if (!this.needToDraw()) return;
+
   // calculate time offset
   let currBeat = (() => {
     let currTime = this.getTime();
@@ -434,7 +477,7 @@ PlayerCanvas.prototype.draw = function () {
   ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
   ctx.save(); // widget offset and scale
   ctx.scale(this.scale, this.scale);
-  ctx.translate(0, 1);
+  ctx.translate(0, 1 + this.getScroll());
 
   ctx.save();
   let menuWidth = unitbars.regular_rect.w + unitbars.side_rect.w;
@@ -445,8 +488,10 @@ PlayerCanvas.prototype.draw = function () {
   };
   this.drawTimeline(currBeat, dimensions);
   ctx.restore();
-  this.drawUnitList();
+  this.drawUnitList(dimensions.h);
 
+  ctx.fillStyle = BGCOLOR; // fill widget offset remainder
+  ctx.fillRect(0, -1, this.canvas.width, 1);
   ctx.restore(); // widget offset and scale
 }
 

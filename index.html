@@ -10,7 +10,11 @@
 <script src="Pxtone.js"></script>
 <body>
 
-<canvas id="player" onload="this.width = window.innerWidth" height="192"></canvas>
+<div id="wrapper" style="text-align:center">
+  <div id="scrollContainer">
+    <canvas id="player" height="192"></canvas>
+  </div>
+</div>
 
 <div id="drop">
   <p>Load file</p>
@@ -57,7 +61,11 @@
   // resize canvas on window resize
   (function () {
     const canvas = document.getElementById('player');
-    function resize() { canvas.width = window.innerWidth-30; }
+    const scrollContainer = document.getElementById('scrollContainer');
+    function resize() {
+      canvas.width = window.innerWidth-30;
+      scrollContainer.setAttribute("style", "max-height:" + (window.innerHeight - 150) + "px");
+    }
     window.addEventListener('resize', resize, false);
     resize();
   })();
