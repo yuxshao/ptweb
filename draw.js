@@ -115,7 +115,7 @@ export let PlayerCanvas = function (canvas, canvasFixed) {
   this.setZoom(1);
   this.setSnap('meas');
   this.setScale(1);
-  this.view = "unit";
+  this.view = "keyboard";
 }
 
 PlayerCanvas.prototype.setZoom = function (zoom) {
@@ -180,7 +180,7 @@ PlayerCanvas.prototype.updateCanvasHeight = function () {
       break;
   }
   this.canvas.height = height * this.scale;
-  this.canvasFixed.height = Math.min(this.canvasFixed.maxHeight, this.canvas.height);
+  this.canvasFixed.height = Math.min((this.unitOffsetY + 1) * this.scale, this.canvas.height);
 }
 
 PlayerCanvas.prototype.velocityAt = function (unit_no, clock) {
@@ -429,6 +429,7 @@ PlayerCanvas.prototype.drawTimeline = function (ctx, currBeat, dimensions) {
         break;
     }
     ctx.translate(0, -this.unitOffsetY);
+    this.drawPlayhead(ctx, currBeat, dimensions);
   });
 }
 
@@ -499,8 +500,7 @@ PlayerCanvas.prototype.draw = function () {
   ctx.translate(menuWidth, 0);
   dimensions = getDims(this.canvasFixed);
   this.withSongPositionShift(ctx, currBeat, dimensions.w, (canvasOffsetX) => {
-    let topDim = { w: dimensions.w, h: this.unitOffsetY };
-    this.drawMeasureMarkers(ctx, canvasOffsetX, topDim);
+    this.drawMeasureMarkers(ctx, canvasOffsetX, dimensions);
     this.drawPlayhead(ctx, currBeat, dimensions);
   });
   ctx.restore();

@@ -10,13 +10,11 @@
 <script src="Pxtone.js"></script>
 <body>
 
-<div id="wrapper" style="text-align:center">
-  <div id="playerContainer">
-    <div id="scrollContainer">
-      <canvas id="player"></canvas>
-    </div>
-    <canvas id="playerFixed"></canvas>
+<div id="playerContainer">
+  <div id="scrollContainer">
+    <canvas id="player"></canvas>
   </div>
+  <canvas id="playerFixed"></canvas>
 </div>
 
 <div id="drop">
@@ -78,7 +76,7 @@
     const scrollContainer = document.getElementById('scrollContainer');
     let scrollContainerHeight = null;
     function resize() {
-      canvas.width = window.innerWidth-30;
+      canvas.width = window.innerWidth-40;
       canvasFixed.width = canvas.width;
       let newContainerHeight = window.innerHeight - 220;
       if (newContainerHeight !== scrollContainerHeight) {
