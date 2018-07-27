@@ -166,10 +166,16 @@ footer {
   padding:10px 0px;
 }
 
-canvas { display:block; }
+#player { display:block; }
+#playerFixed { position:absolute; top:0; left:0; }
+
 #scrollContainer {
+  overflow-y: scroll;
+}
+
+#playerContainer {
+  position:relative;
   display:inline-block;
   padding: 0px;
-  margin: 0px;
-  overflow-y: scroll;
+  margin: 2px;
 }

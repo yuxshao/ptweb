@@ -11,7 +11,11 @@ ctx.suspend();
 let currentAudioPlayer = new AudioPlayer(null, ctx);
 
 const getScroll = () => document.getElementById('scrollContainer').scrollTop;
-let myPlayerCanvas = new PlayerCanvas(document.getElementById('player'), getScroll);
+let myPlayerCanvas = (() => {
+  let player = document.getElementById('player');
+  let fixed  = document.getElementById('playerFixed');
+  return new PlayerCanvas(player, fixed, getScroll);
+})();
 myPlayerCanvas.getTime = currentAudioPlayer.getCurrentTime;
 myPlayerCanvas.drawContinuously();
 

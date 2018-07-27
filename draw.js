@@ -2,8 +2,6 @@
 
 import { SortedList } from "./lib/sorted-list.js"
 
-const canvas = document.getElementById('player');
-
 const numbers_green = new Image(80, 8);
 const flags = new Image(81, 16);
 const playhead = new Image(9, 5);
@@ -104,20 +102,20 @@ const DEFAULT_VELOCITY = 104;
 const DEFAULT_KEY      = 0x6000;
 const BASE_MEASURE_WIDTH = 192;
 
-export let PlayerCanvas = function (canvas, getScroll) {
+export let PlayerCanvas = function (canvas, canvasFixed) {
   this.unitOffsetY = 32;
   this.canvas = canvas;
+  this.canvasFixed = canvasFixed;
 
   this.lastDrawState = {}; // for avoiding redrawing the same thing
   this.getTime = () => 0;
-  this.getScroll = () => getScroll() / this.scale;
   this.isStarted = () => false;
 
   this.setData([""], [], DEFAULT_MASTER);
   this.setZoom(1);
   this.setSnap('meas');
   this.setScale(1);
-  this.view = "keyboard";
+  this.view = "unit";
 }
 
 PlayerCanvas.prototype.setZoom = function (zoom) {
@@ -131,6 +129,7 @@ PlayerCanvas.prototype.setScale = function (scale) {
 };
 
 PlayerCanvas.prototype.setData = function(units, evels, master) {
+  this.lastDrawState = {};
   this.master = master;
   this.setUnits(units);
   this.evels = evels;
@@ -180,7 +179,8 @@ PlayerCanvas.prototype.updateCanvasHeight = function () {
       height = unitbars.regular_rect.h * l + unitbars.top_rect.h;
       break;
   }
-  canvas.height = height * this.scale;
+  this.canvas.height = height * this.scale;
+  this.canvasFixed.height = Math.min(this.canvasFixed.maxHeight, this.canvas.height);
 }
 
 PlayerCanvas.prototype.velocityAt = function (unit_no, clock) {
@@ -201,10 +201,7 @@ PlayerCanvas.prototype.keyAt = function (unit_no, clock) {
   return this.evels[this.keys[unit_no][i]].value;
 }
 
-PlayerCanvas.prototype.drawUnitList = function (height) {
-  let ctx = this.ctx();
-  this.ctx().translate(0, -this.getScroll()); // subject list to scrolling
-
+PlayerCanvas.prototype.drawUnitList = function (ctx, height) {
   // left bar
   ctx.translate(0, this.unitOffsetY);
   for (let y = 0; y < height; y += unitbars.side_rect.h)
@@ -228,15 +225,10 @@ PlayerCanvas.prototype.drawUnitList = function (height) {
     drawImageRect(ctx, unitbars, unitbars.nothing_rect, unitbars.side_rect.w, y);
 
   ctx.translate(0, -this.unitOffsetY);
-
-  this.ctx().translate(0, this.getScroll());
-  // top
-  drawImageRect(ctx, unitbars, unitbars.top_rect, 0, 0);
 }
 
 const BEATLINE_OFFSET = 25;
-PlayerCanvas.prototype.drawBeatLines = function(canvasOffsetX, dimensions) {
-  let ctx = this.ctx();
+PlayerCanvas.prototype.drawBeatLines = function(ctx, canvasOffsetX, dimensions) {
   ctx.fillStyle = "#808080";
   let h = Math.max(0, dimensions.h - BEATLINE_OFFSET);
   let beatWidth = this.measureWidth / this.master.beatNum;
@@ -245,24 +237,22 @@ PlayerCanvas.prototype.drawBeatLines = function(canvasOffsetX, dimensions) {
     ctx.fillRect((i + start) * beatWidth, 25, 1, h);
 }
 
-PlayerCanvas.prototype.drawMeasureLines = function(canvasOffsetX, dimensions) {
-  let ctx = this.ctx();
+PlayerCanvas.prototype.drawMeasureLines = function(ctx, canvasOffsetX, dimensions) {
   ctx.fillStyle = "#F0F0F0";
   let start = Math.floor(canvasOffsetX / this.measureWidth);
   for (let i = 0; i < dimensions.w / this.measureWidth + 1; ++i)
     ctx.fillRect((i + start) * this.measureWidth, 0, 1, dimensions.h);
 }
 
-PlayerCanvas.prototype.drawRulers = function(canvasOffsetX, dimensions) {
-  this.drawBeatLines(canvasOffsetX, dimensions);
-  this.drawMeasureLines(canvasOffsetX, dimensions);
+PlayerCanvas.prototype.drawRulers = function(ctx, canvasOffsetX, dimensions) {
+  this.drawBeatLines(ctx, canvasOffsetX, dimensions);
+  this.drawMeasureLines(ctx, canvasOffsetX, dimensions);
 }
 
-PlayerCanvas.prototype.drawMeasureMarkers = function(canvasOffsetX, dimensions) {
-  let ctx = this.ctx();
+PlayerCanvas.prototype.drawMeasureMarkers = function(ctx, canvasOffsetX, dimensions) {
   ctx.fillStyle = BGCOLOR;
   ctx.fillRect(canvasOffsetX, 0, dimensions.w, dimensions.h);
-  this.drawBeatLines(canvasOffsetX, dimensions);
+  this.drawBeatLines(ctx, canvasOffsetX, dimensions);
 
   // measure markers
   let start = Math.floor(canvasOffsetX / this.measureWidth);
@@ -294,19 +284,22 @@ PlayerCanvas.prototype.drawMeasureMarkers = function(canvasOffsetX, dimensions) 
   ctx.fillStyle = "#808080";
   ctx.fillRect(start, 31, dimensions.w, 1);
 
-  this.drawMeasureLines(canvasOffsetX, dimensions);
+  this.drawMeasureLines(ctx, canvasOffsetX, dimensions);
 }
 
 PlayerCanvas.prototype.clockPerPx = function () {
   return this.master.beatClock * this.master.beatNum / this.measureWidth;
 }
 
+PlayerCanvas.prototype.fctx = function () {
+  return this.canvasFixed.getContext('2d');
+}
+
 PlayerCanvas.prototype.ctx = function () {
   return this.canvas.getContext('2d');
 }
 
-PlayerCanvas.prototype.drawPlayhead = function(currBeat, dimensions) {
-  let ctx = this.ctx();
+PlayerCanvas.prototype.drawPlayhead = function(ctx, currBeat, dimensions) {
   ctx.save(); // playhead position
   ctx.fillStyle = "#FFFFFF";
   let currClock = currBeat * this.master.beatClock;
@@ -317,8 +310,8 @@ PlayerCanvas.prototype.drawPlayhead = function(currBeat, dimensions) {
 }
 
 // how much to translate by so that approximately the current time is in view
-PlayerCanvas.prototype.getSongPositionShift = function(currBeat, dimensions) {
-  let shiftX = Math.floor(dimensions.w/2);
+PlayerCanvas.prototype.getSongPositionShift = function(currBeat, dim_w) {
+  let shiftX = Math.floor(dim_w/2);
   let playX;
   switch (this.snap) {
     case 'beat':
@@ -334,10 +327,9 @@ PlayerCanvas.prototype.getSongPositionShift = function(currBeat, dimensions) {
   return shiftX - playX;
 }
 
-PlayerCanvas.prototype.drawKeyboardNote = function(started, unit_no, key, start, end, current) {
+PlayerCanvas.prototype.drawKeyboardNote = function(ctx, started, unit_no, key, start, end, current) {
   let playing = (started && start <= current && end > current);
   let clockPerPx = this.clockPerPx();
-  let ctx = this.ctx();
 
   let offset = KEYBOARD_BASE_SHIFT * 16 + (DEFAULT_KEY - key)/16;
   ctx.fillStyle = keyboardNoteColor(playing, this.velocityAt(unit_no, current), this.volumeAt(unit_no, current));
@@ -347,10 +339,9 @@ PlayerCanvas.prototype.drawKeyboardNote = function(started, unit_no, key, start,
 }
 
 let pianoPattern = [false, true, false, true, false, false, true, false, true, false, false, true];
-PlayerCanvas.prototype.drawKeyboard = function(unit_no, canvasOffsetX, currBeat, dimensions) {
+PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_no, canvasOffsetX, currBeat, dimensions) {
   let currClock = currBeat * this.master.beatClock;
   let clockPerPx = this.clockPerPx();
-  let ctx = this.ctx();
   for (let i = 0; i < dimensions.h / 16; ++i) {
     let ind = ((i - KEYBOARD_BASE_SHIFT) % pianoPattern.length + pianoPattern.length) % pianoPattern.length;
     ctx.fillStyle = (pianoPattern[ind] ? "#202020" : "#404040");
@@ -367,7 +358,7 @@ PlayerCanvas.prototype.drawKeyboard = function(unit_no, canvasOffsetX, currBeat,
 
   let currentKey = this.keyAt(unit_no, this.evels[startIdx].clock);
   let noteStart = Infinity, noteEnd = Infinity;
-  let drawNote = (end) => this.drawKeyboardNote(this.isStarted(), unit_no, currentKey, noteStart, end, currClock);
+  let drawNote = (end) => this.drawKeyboardNote(ctx, this.isStarted(), unit_no, currentKey, noteStart, end, currClock);
   for (let i = startIdx; i < this.evels.length && this.evels[i].clock < rightBound; ++i) {
     let e = this.evels[i];
     if (e.unit_no !== unit_no) continue;
@@ -389,9 +380,8 @@ PlayerCanvas.prototype.drawKeyboard = function(unit_no, canvasOffsetX, currBeat,
   if (rightBound >= noteStart) drawNote(noteEnd); // draw the note continuation at end
 }
 
-PlayerCanvas.prototype.drawUnitRows = function(canvasOffsetX, currBeat, dimensions) {
+PlayerCanvas.prototype.drawUnitRows = function(ctx, canvasOffsetX, currBeat, dimensions) {
   let currClock = currBeat * this.master.beatClock;
-  let ctx = this.ctx();
   let clockPerPx = this.clockPerPx();
 
   // clock at left/right bound of visible area
@@ -417,41 +407,35 @@ PlayerCanvas.prototype.drawUnitRows = function(canvasOffsetX, currBeat, dimensio
   }
 }
 
-PlayerCanvas.prototype.drawTimeline = function (currBeat, dimensions) {
-  this.ctx().save(); // song position shift
+PlayerCanvas.prototype.withSongPositionShift = function (ctx, currBeat, dim_w, f) {
+  let canvasOffsetX = -this.getSongPositionShift(currBeat, dim_w);
+  ctx.translate(-canvasOffsetX, 0);
+  f(canvasOffsetX);
+  ctx.translate(canvasOffsetX, 0);
+}
 
-  let canvasOffsetX = -this.getSongPositionShift(currBeat, dimensions);
-  this.ctx().translate(-canvasOffsetX, 0);
+PlayerCanvas.prototype.drawTimeline = function (ctx, currBeat, dimensions) {
+  this.withSongPositionShift(ctx, currBeat, dimensions.w, (canvasOffsetX) => {
+    this.drawRulers(ctx, canvasOffsetX, dimensions);
 
-  this.drawRulers(canvasOffsetX, dimensions);
-
-  this.ctx().translate(0, this.unitOffsetY); // top bar offset
-
-  this.ctx().translate(0, -this.getScroll());
-  switch (this.view) {
-    case "keyboard":
-      this.drawKeyboard(0, canvasOffsetX, currBeat, dimensions);
-      break;
-    case "unit":
-    default:
-      this.drawUnitRows(canvasOffsetX, currBeat, dimensions);
-      break;
-  }
-  this.ctx().translate(0, this.getScroll());
-
-  this.ctx().translate(0, -this.unitOffsetY);
-
-  this.drawMeasureMarkers(canvasOffsetX, { w: dimensions.w, h: this.unitOffsetY });
-  this.drawPlayhead(currBeat, dimensions);
-
-  this.ctx().restore(); // song position shift
+    ctx.translate(0, this.unitOffsetY); // top bar offset
+    switch (this.view) {
+      case "keyboard":
+        this.drawKeyboard(ctx, 0, canvasOffsetX, currBeat, dimensions);
+        break;
+      case "unit":
+      default:
+        this.drawUnitRows(ctx, canvasOffsetX, currBeat, dimensions);
+        break;
+    }
+    ctx.translate(0, -this.unitOffsetY);
+  });
 }
 
 PlayerCanvas.prototype.needToDraw = function () {
   let last = this.lastDrawState;
   let now = {
     time:   this.getTime(),
-    scroll: this.getScroll(),
     width:  this.canvas.width,
     height: this.canvas.height
   }
@@ -478,6 +462,12 @@ PlayerCanvas.prototype.draw = function () {
     return (beat - repeatBeat) % (lastBeat - repeatBeat) + repeatBeat;
   })();
   if (currBeat < 0) currBeat = 0;
+
+  let menuWidth = unitbars.regular_rect.w + unitbars.side_rect.w;
+  let getDims = (canvas) => {
+    return { w: canvas.width / this.scale - menuWidth, h: canvas.height / this.scale };
+  }
+
   let ctx = this.ctx();
   ctx.imageSmoothingEnabled = false;
 
@@ -485,18 +475,36 @@ PlayerCanvas.prototype.draw = function () {
   ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
   ctx.save(); // widget offset and scale
   ctx.scale(this.scale, this.scale);
-  ctx.translate(0, 1 + this.getScroll());
+  ctx.translate(0, 1);
 
   ctx.save();
-  let menuWidth = unitbars.regular_rect.w + unitbars.side_rect.w;
   ctx.translate(menuWidth, 0);
-  let dimensions = {
-    w: this.canvas.width/this.scale - menuWidth,
-    h: this.canvas.height/this.scale
-  };
-  this.drawTimeline(currBeat, dimensions);
+  let dimensions = getDims(this.canvas);
+  this.drawTimeline(ctx, currBeat, dimensions);
   ctx.restore();
-  this.drawUnitList(dimensions.h);
+  this.drawUnitList(ctx, dimensions.h);
+
+  ctx.restore(); // widget offset and scale
+
+  // top
+  ctx = this.fctx();
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, this.canvasFixed.width, this.canvasFixed.height);
+
+  ctx.save(); // widget offset and scale
+  ctx.scale(this.scale, this.scale);
+  ctx.translate(0, 1);
+
+  ctx.save(); // top-left tab shift
+  ctx.translate(menuWidth, 0);
+  dimensions = getDims(this.canvasFixed);
+  this.withSongPositionShift(ctx, currBeat, dimensions.w, (canvasOffsetX) => {
+    let topDim = { w: dimensions.w, h: this.unitOffsetY };
+    this.drawMeasureMarkers(ctx, canvasOffsetX, topDim);
+    this.drawPlayhead(ctx, currBeat, dimensions);
+  });
+  ctx.restore();
+  drawImageRect(ctx, unitbars, unitbars.top_rect, 0, 0); // top-left tabs
 
   ctx.fillStyle = BGCOLOR; // fill widget offset remainder
   ctx.fillRect(0, -1, this.canvas.width, 1);
@@ -506,7 +514,7 @@ PlayerCanvas.prototype.draw = function () {
 PlayerCanvas.prototype.drawLoading = function () {
   let ctx = this.ctx();
   ctx.fillStyle = "#000010";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
   ctx.font = "30px sans-serif";
   ctx.fillStyle = "#FFFFFF";

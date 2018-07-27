@@ -11,8 +11,11 @@
 <body>
 
 <div id="wrapper" style="text-align:center">
-  <div id="scrollContainer">
-    <canvas id="player" height="192"></canvas>
+  <div id="playerContainer">
+    <div id="scrollContainer">
+      <canvas id="player"></canvas>
+    </div>
+    <canvas id="playerFixed"></canvas>
   </div>
 </div>
 
@@ -61,10 +64,18 @@
   // resize canvas on window resize
   (function () {
     const canvas = document.getElementById('player');
+    const canvasFixed = document.getElementById('playerFixed');
     const scrollContainer = document.getElementById('scrollContainer');
+    let scrollContainerHeight = null;
     function resize() {
       canvas.width = window.innerWidth-30;
-      scrollContainer.setAttribute("style", "max-height:" + (window.innerHeight - 150) + "px");
+      canvasFixed.width = canvas.width;
+      let newContainerHeight = window.innerHeight - 150;
+      if (newContainerHeight !== scrollContainerHeight) {
+        scrollContainerHeight = newContainerHeight;
+        scrollContainer.setAttribute("style", "max-height:" + scrollContainerHeight + "px");
+        canvasFixed.maxHeight = scrollContainerHeight;
+      }
     }
     window.addEventListener('resize', resize, false);
     resize();
