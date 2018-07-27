@@ -215,18 +215,38 @@ PlayerCanvas.prototype.drawUnitList = function () {
   ctx.translate(0, -this.unitOffsetY);
 }
 
-PlayerCanvas.prototype.drawRulers = function(canvasOffsetX, dimensions) {
+const BEATLINE_OFFSET = 25;
+PlayerCanvas.prototype.drawBeatLines = function(canvasOffsetX, dimensions) {
   let ctx = this.ctx();
-  let start; // used to get the ruler offsets in the scroll view
-  // beat lines
   ctx.fillStyle = "#808080";
+  let h = Math.max(0, dimensions.h - BEATLINE_OFFSET);
   let beatWidth = this.measureWidth / this.master.beatNum;
-  start = Math.floor(canvasOffsetX / beatWidth);
+  let start = Math.floor(canvasOffsetX / beatWidth);
   for (let i = 0; i < dimensions.w / beatWidth + 1; ++i)
-    ctx.fillRect((i + start) * beatWidth, 25, 1, dimensions.h);
+    ctx.fillRect((i + start) * beatWidth, 25, 1, h);
+}
+
+PlayerCanvas.prototype.drawMeasureLines = function(canvasOffsetX, dimensions) {
+  let ctx = this.ctx();
+  ctx.fillStyle = "#F0F0F0";
+  let start = Math.floor(canvasOffsetX / this.measureWidth);
+  for (let i = 0; i < dimensions.w / this.measureWidth + 1; ++i)
+    ctx.fillRect((i + start) * this.measureWidth, 0, 1, dimensions.h);
+}
+
+PlayerCanvas.prototype.drawRulers = function(canvasOffsetX, dimensions) {
+  this.drawBeatLines(canvasOffsetX, dimensions);
+  this.drawMeasureLines(canvasOffsetX, dimensions);
+}
+
+PlayerCanvas.prototype.drawMeasureMarkers = function(canvasOffsetX, dimensions) {
+  let ctx = this.ctx();
+  ctx.fillStyle = BGCOLOR;
+  ctx.fillRect(0, 0, dimensions.w, dimensions.h);
+  this.drawBeatLines(canvasOffsetX, dimensions);
 
   // measure markers
-  start = Math.floor(canvasOffsetX / this.measureWidth);
+  let start = Math.floor(canvasOffsetX / this.measureWidth);
   for (let i = 0; i < dimensions.w / this.measureWidth + 1; ++i) {
     let box_left = (i + start) * this.measureWidth;
     ctx.fillStyle = "#606060";
@@ -250,16 +270,12 @@ PlayerCanvas.prototype.drawRulers = function(canvasOffsetX, dimensions) {
       drawImageRect(ctx, flags, flags.last_rect, box_left-flags.last_rect.w, 9);
   }
 
+  // grey horizontal line above unit
   start = canvasOffsetX;
-
-  ctx.fillStyle = "#808080"; // grey horizontal line above unit
+  ctx.fillStyle = "#808080";
   ctx.fillRect(start, 31, dimensions.w, 1);
 
-  // measure lines
-  ctx.fillStyle = "#F0F0F0";
-  start = Math.floor(canvasOffsetX / this.measureWidth);
-  for (let i = 0; i < dimensions.w / this.measureWidth + 1; ++i)
-    ctx.fillRect((i + start) * this.measureWidth, 0, 1, dimensions.h);
+  this.drawMeasureLines(canvasOffsetX, dimensions);
 }
 
 PlayerCanvas.prototype.clockPerPx = function () {
@@ -393,11 +409,13 @@ PlayerCanvas.prototype.drawTimeline = function (currBeat, dimensions) {
 
   this.ctx().translate(0, -this.unitOffsetY);
 
+  this.drawMeasureMarkers(canvasOffsetX, { w: dimensions.w, h: this.unitOffsetY });
   this.drawPlayhead(currBeat, dimensions);
 
   this.ctx().restore(); // song position shift
 }
 
+const BGCOLOR = "#000010";
 PlayerCanvas.prototype.draw = function () {
   // calculate time offset
   let currBeat = (() => {
@@ -412,7 +430,7 @@ PlayerCanvas.prototype.draw = function () {
   let ctx = this.ctx();
   ctx.imageSmoothingEnabled = false;
 
-  ctx.fillStyle = "#000010";
+  ctx.fillStyle = BGCOLOR;
   ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
   ctx.save(); // widget offset and scale
   ctx.scale(this.scale, this.scale);
