@@ -163,6 +163,7 @@ footer {
   border-top:1px solid black;
   margin:10px;
   display:block; float:left;
+  clear: both;
   padding:10px 0px;
 }
 
@@ -172,6 +173,8 @@ footer {
 #scrollContainer {
   overflow-y: scroll;
 }
+
+#commentsToggle { margin-left: 5px; }
 
 #playerContainer {
   position:relative;

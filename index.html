@@ -44,9 +44,10 @@
     <option value="none">none</option>
   </select>
   2x: <input type="checkbox" id="scaleSelect" />
+  <button id="commentsToggle">info</button>
 </div>
 
-<output>
+<output style="display:none">
   file name:
   <p class="name">&nbsp;</p>
   title:
@@ -61,6 +62,15 @@
 
 <script src="script.js" type="module"></script>
 <script>
+  // toggle info
+  let commentsToggle = document.getElementById('commentsToggle');
+  let output = document.querySelector('output');
+  commentsToggle.onclick = function () {
+    if (output.style.display === "none")
+      output.style.display = "block";
+    else output.style.display = "none";
+  };
+
   // resize canvas on window resize
   (function () {
     const canvas = document.getElementById('player');
@@ -70,7 +80,7 @@
     function resize() {
       canvas.width = window.innerWidth-30;
       canvasFixed.width = canvas.width;
-      let newContainerHeight = window.innerHeight - 150;
+      let newContainerHeight = window.innerHeight - 220;
       if (newContainerHeight !== scrollContainerHeight) {
         scrollContainerHeight = newContainerHeight;
         scrollContainer.setAttribute("style", "max-height:" + scrollContainerHeight + "px");
