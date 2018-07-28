@@ -167,17 +167,21 @@ footer {
   padding:10px 0px;
 }
 
-#player { display:block; }
+#playerContainer canvas { display:block; }
 #playerFixed { position:absolute; top:0; left:0; }
+#playerMenu  { position:absolute; top:0; left:0; }
 
 #scrollContainer {
+  overflow-x: hidden;
   overflow-y: scroll;
+  position:relative;
 }
 
 #commentsToggle { margin-left: 5px; }
 
 #playerContainer {
   position:relative;
+  overflow-x: hidden;
   display:inline-block;
   padding: 0px;
   margin: 5px;

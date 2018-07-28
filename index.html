@@ -12,6 +12,7 @@
 
 <div id="playerContainer">
   <div id="scrollContainer">
+    <canvas id="playerMenu"></canvas>
     <canvas id="player"></canvas>
   </div>
   <canvas id="playerFixed"></canvas>
@@ -73,6 +74,7 @@
   (function () {
     const canvas = document.getElementById('player');
     const canvasFixed = document.getElementById('playerFixed');
+    const canvasMenu = document.getElementById('playerMenu');
     const scrollContainer = document.getElementById('scrollContainer');
     let scrollContainerHeight = null;
     function resize() {

@@ -42,6 +42,7 @@ unitbars.regular_rect   = { x: 16, y: 48, w: 128, h: 16  };
 unitbars.selected_rect  = { x: 16, y: 64, w: 128, h: 16  };
 unitbars.nothing_rect   = { x: 16, y: 80, w: 128, h: 16  };
 unitbars.src = './res/unitbars.png';
+const MENU_WIDTH = unitbars.regular_rect.w + unitbars.side_rect.w;
 
 var imagesToLoad = [numbers_green, flags, playhead, unitbars];
 // we don't wait for the onloads to be called in case some were already loaded
@@ -78,10 +79,11 @@ function middleSnap(x) { return Math.floor(x) + 0.5; }
 
 let getColor = getColorGen(DEFAULT_VELOCITY, DEFAULT_VOLUME);
 
-export let PlayerCanvas = function (canvas, canvasFixed) {
+export let PlayerCanvas = function (canvas, canvasFixed, canvasMenu) {
   this.unitOffsetY = 32;
-  this.canvas = canvas;
+  this.canvas      = canvas;
   this.canvasFixed = canvasFixed;
+  this.canvasMenu  = canvasMenu;
 
   this.lastDrawState = {}; // for avoiding redrawing the same thing
   this.getTime = () => 0;
@@ -117,11 +119,11 @@ PlayerCanvas.prototype.addMenuListeners = function() {
       this.view = 'unit';
     if (rectContains(keyTabRect, coord))
       this.view = 'keyboard';
-    this.updateCanvasHeight();
+    this.updateCanvasDims();
   });
 
   // toggle
-  this.canvas.addEventListener('mousedown', (e) => {
+  this.canvasMenu.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
     let coord = this.toLocalCoords({x:e.offsetX, y:e.offsetY});
     coord.y -= this.unitOffsetY;
@@ -133,7 +135,7 @@ PlayerCanvas.prototype.addMenuListeners = function() {
         this.drawUnit[i] = !this.drawUnit[i];
       coord.y -= unitbars.regular_rect.h;
     }
-    this.updateCanvasHeight();
+    this.updateCanvasDims();
   });
 
   this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -146,13 +148,12 @@ PlayerCanvas.prototype.setZoom = function (zoom) {
 PlayerCanvas.prototype.setSnap  = function (snap) { this.snap = snap; };
 PlayerCanvas.prototype.setScale = function (scale) {
   this.scale = scale;
-  this.updateCanvasHeight();
+  this.updateCanvasDims();
 };
 
 PlayerCanvas.prototype.setData = function(units, evels, master) {
-  this.forceRedraw();
   this.master = master;
-  this.setUnits(units);
+  this.units = units;
   this.evels = evels;
 
   let totalClock = master.beatClock * master.beatNum * master.measNum;
@@ -183,14 +184,11 @@ PlayerCanvas.prototype.setData = function(units, evels, master) {
     }
   }
 
+  this.forceRedraw();
+  this.updateCanvasDims();
 }
 
-PlayerCanvas.prototype.setUnits = function (units) {
-  this.units = units;
-  this.updateCanvasHeight();
-}
-
-PlayerCanvas.prototype.updateCanvasHeight = function () {
+PlayerCanvas.prototype.updateCanvasDims = function () {
   let height = 0;
   switch (this.view) {
     case "keyboard":
@@ -204,6 +202,8 @@ PlayerCanvas.prototype.updateCanvasHeight = function () {
   }
   this.canvas.height = height * this.scale;
   this.canvasFixed.height = Math.min((this.unitOffsetY + 1) * this.scale, this.canvas.height);
+  this.canvasMenu.width  = MENU_WIDTH * this.scale;
+  this.canvasMenu.height = this.canvas.height;
   this.forceRedraw();
 }
 
@@ -251,9 +251,9 @@ PlayerCanvas.prototype.drawUnitList = function (ctx, height) {
   ctx.fillStyle = "#FFFFFF";
   ctx.textBaseline = "middle";
   ctx.textAlign = "left";
+  ctx.save() // row translate
+  ctx.translate(unitbars.side_rect.w, 0);
   for (i = 0; i < this.units.length; ++i) {
-    ctx.save() // translate & clip
-    ctx.translate(unitbars.side_rect.w, i * unitbars.regular_rect.h);
     drawImageRect(ctx, unitbars, unitbars.regular_rect, 0, 0);
 
     if (this.drawKey[i])
@@ -261,14 +261,15 @@ PlayerCanvas.prototype.drawUnitList = function (ctx, height) {
     if (this.drawUnit[i])
       this.drawToggle(ctx, 21, 2, getColor[i % getColor.length]);
 
-    ctx.rect(0, 0, unitbars.regular_rect.w, unitbars.regular_rect.h);
-    ctx.clip();
     ctx.fillText(this.units[i], UNIT_TEXT_PADDING, unitbars.regular_rect.h / 2);
-    ctx.restore();
+    ctx.translate(0, unitbars.regular_rect.h);
   }
   // 2. empty rows
-  for (let y = i * unitbars.regular_rect.h; y < height; y += unitbars.regular_rect.h)
-    drawImageRect(ctx, unitbars, unitbars.nothing_rect, unitbars.side_rect.w, y);
+  for (let y = i * unitbars.regular_rect.h; y < height; y += unitbars.regular_rect.h) {
+    drawImageRect(ctx, unitbars, unitbars.nothing_rect, 0, 0);
+    ctx.translate(0, unitbars.nothing_rect.h);
+  }
+  ctx.restore();
 
   ctx.translate(0, -this.unitOffsetY);
 }
@@ -335,6 +336,10 @@ PlayerCanvas.prototype.drawMeasureMarkers = function(ctx, canvasOffsetX, dimensi
 
 PlayerCanvas.prototype.clockPerPx = function () {
   return this.master.beatClock * this.master.beatNum / this.measureWidth;
+}
+
+PlayerCanvas.prototype.mctx = function () {
+  return this.canvasMenu.getContext('2d');
 }
 
 PlayerCanvas.prototype.fctx = function () {
@@ -467,6 +472,17 @@ PlayerCanvas.prototype.withSongPositionShift = function (ctx, currBeat, dim_w, f
   ctx.translate(canvasOffsetX, 0);
 }
 
+PlayerCanvas.prototype.withWidgetTransform = function (ctx, f) {
+  ctx.save();
+  ctx.scale(this.scale, this.scale);
+  ctx.translate(0, 1);
+
+  ctx.save();
+  f();
+  ctx.restore();
+  ctx.restore();
+}
+
 PlayerCanvas.prototype.drawTimeline = function (ctx, currBeat, dimensions) {
   this.withSongPositionShift(ctx, currBeat, dimensions.w, (canvasOffsetX) => {
     this.drawRulers(ctx, canvasOffsetX, dimensions);
@@ -529,9 +545,8 @@ PlayerCanvas.prototype.draw = function () {
   })();
   if (currBeat < 0) currBeat = 0;
 
-  let menuWidth = unitbars.regular_rect.w + unitbars.side_rect.w;
   let getDims = (canvas) => {
-    return { w: canvas.width / this.scale - menuWidth, h: canvas.height / this.scale };
+    return { w: canvas.width / this.scale - MENU_WIDTH, h: canvas.height / this.scale };
   }
 
   let ctx = this.ctx();
@@ -539,48 +554,48 @@ PlayerCanvas.prototype.draw = function () {
 
   ctx.fillStyle = BGCOLOR;
   ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-  ctx.save(); // widget offset and scale
-  ctx.scale(this.scale, this.scale);
-  ctx.translate(0, 1);
+  this.withWidgetTransform(ctx, () => {
+    ctx.save();
+    ctx.translate(MENU_WIDTH, 0);
+    let dimensions = getDims(this.canvas);
+    this.drawTimeline(ctx, currBeat, dimensions);
+    ctx.restore();
+  });
 
-  ctx.save();
-  ctx.translate(menuWidth, 0);
-  let dimensions = getDims(this.canvas);
-  this.drawTimeline(ctx, currBeat, dimensions);
-  ctx.restore();
-  this.drawUnitList(ctx, dimensions.h);
-
-  ctx.restore(); // widget offset and scale
+  ctx = this.mctx();
+  ctx.imageSmoothingEnabled = false;
+  this.withWidgetTransform(ctx, () => {
+    let dimensions = getDims(this.canvasMenu);
+    this.drawUnitList(ctx, dimensions.h);
+  });
 
   // top
   ctx = this.fctx();
   ctx.imageSmoothingEnabled = false;
   ctx.clearRect(0, 0, this.canvasFixed.width, this.canvasFixed.height);
 
-  ctx.save(); // widget offset and scale
-  ctx.scale(this.scale, this.scale);
-  ctx.translate(0, 1);
+  this.withWidgetTransform(ctx, () => {
+    ctx.save(); // top-left tab shift
+    ctx.translate(MENU_WIDTH, 0);
+    let dimensions = getDims(this.canvasFixed);
+    this.withSongPositionShift(ctx, currBeat, dimensions.w, (canvasOffsetX) => {
+      this.drawMeasureMarkers(ctx, canvasOffsetX, dimensions);
+      this.drawPlayhead(ctx, currBeat, dimensions);
+    });
+    ctx.restore();
 
-  ctx.save(); // top-left tab shift
-  ctx.translate(menuWidth, 0);
-  dimensions = getDims(this.canvasFixed);
-  this.withSongPositionShift(ctx, currBeat, dimensions.w, (canvasOffsetX) => {
-    this.drawMeasureMarkers(ctx, canvasOffsetX, dimensions);
-    this.drawPlayhead(ctx, currBeat, dimensions);
+    // top-left tabs
+    let rect;
+    switch (this.view) {
+      case "keyboard":      rect = unitbars.menu_rect_key; break;
+      case "unit": default: rect = unitbars.menu_rect_unit; break;
+    }
+    drawImageRect(ctx, unitbars, rect, 0, 0);
+    drawImageRect(ctx, unitbars, unitbars.tab_rect, 0, rect.h);
+
+    ctx.fillStyle = BGCOLOR; // fill widget offset remainder
+    ctx.fillRect(0, -1, this.canvas.width, 1);
   });
-  ctx.restore();
-  // top-left tabs
-  let rect;
-  switch (this.view) {
-    case "keyboard":      rect = unitbars.menu_rect_key; break;
-    case "unit": default: rect = unitbars.menu_rect_unit; break;
-  }
-  drawImageRect(ctx, unitbars, rect, 0, 0);
-  drawImageRect(ctx, unitbars, unitbars.tab_rect, 0, rect.h);
-
-  ctx.fillStyle = BGCOLOR; // fill widget offset remainder
-  ctx.fillRect(0, -1, this.canvas.width, 1);
-  ctx.restore(); // widget offset and scale
 }
 
 PlayerCanvas.prototype.drawLoading = function () {
