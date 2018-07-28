@@ -198,6 +198,7 @@ PlayerCanvas.prototype.keyAt = function (unit_no, clock) {
   return this.evels[this.keys[unit_no][i]].value;
 }
 
+const UNIT_TEXT_PADDING = 40;
 PlayerCanvas.prototype.drawUnitList = function (ctx, height) {
   // left bar
   ctx.translate(0, this.unitOffsetY);
@@ -211,11 +212,13 @@ PlayerCanvas.prototype.drawUnitList = function (ctx, height) {
   ctx.textBaseline = "middle";
   ctx.textAlign = "left";
   for (i = 0; i < this.units.length; ++i) {
-    drawImageRect(ctx, unitbars, unitbars.regular_rect, unitbars.side_rect.w, i*unitbars.regular_rect.h);
-    // TODO clip outside of rect
-    ctx.fillText(this.units[i],
-      unitbars.side_rect.w + 5,
-      (i + 0.5) * unitbars.regular_rect.h);
+    ctx.save() // translate & clip
+    ctx.translate(unitbars.side_rect.w, i * unitbars.regular_rect.h);
+    drawImageRect(ctx, unitbars, unitbars.regular_rect, 0, 0);
+    ctx.rect(0, 0, unitbars.regular_rect.w, unitbars.regular_rect.h);
+    ctx.clip();
+    ctx.fillText(this.units[i], UNIT_TEXT_PADDING, unitbars.regular_rect.h / 2);
+    ctx.restore();
   }
   // 2. empty rows
   for (let y = i * unitbars.regular_rect.h; y < height; y += unitbars.regular_rect.h)
