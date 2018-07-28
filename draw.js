@@ -450,7 +450,9 @@ PlayerCanvas.prototype.needToDraw = function () {
     width:  this.canvas.width,
     height: this.canvas.height,
     scale:  this.scale,
-    view:   this.view
+    view:   this.view,
+    snap:   this.snap,
+    zoom:   this.measureWidth,
   }
   let need = false;
   for (let prop in now)
