@@ -421,6 +421,8 @@ PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_nos, canvasOffsetX, cur
 
     let currentKey = this.keyAt(unit_no, this.evels[startIdx].clock);
     let noteStart = Infinity, noteEnd = Infinity;
+    // TODO: currently wrong. only single segment of note is highlighted instead
+    // of whole on press
     let drawNote = (end) =>
       this.drawKeyboardNote(ctx, this.isStarted(), unit_no, currentKey, noteStart, end, currClock);
     unit_states[unit_no] = {
@@ -448,10 +450,12 @@ PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_nos, canvasOffsetX, cur
 
   for (let i = minStartIdx; i < this.evels.length && this.evels[i].clock < rightBound; ++i) {
     let e = this.evels[i];
-    if (unit_nos[e.unit_no] !== null && unit_states[e.unit_no].startIdx <= i)
+    if (unit_states[e.unit_no] !== null && unit_states[e.unit_no].startIdx <= i)
       unit_states[e.unit_no].consume(e);
   }
 
+  // TODO: draw order is by end time, except if it goes past end, in which case it's by unit no
+  // causes animation artefact
   for (let state of unit_states) if (state !== null) state.conclude();
 }
 
