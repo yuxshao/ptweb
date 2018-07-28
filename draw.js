@@ -453,9 +453,12 @@ PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_nos, canvasOffsetX, cur
             break;
           case "KEY":
             // if in middle of note, draw just-finished note and start a new one
-            if (e.clock > noteStart) { drawNote(e.clock); lastQueueId = drawQueue.add(); }
+            if (e.clock > noteStart) {
+              drawNote(e.clock);
+              lastQueueId = drawQueue.add();
+              noteStart = e.clock;
+            }
             currentKey = e.value;
-            noteStart = e.clock;
             break;
           default: break;
         }
