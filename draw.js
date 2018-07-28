@@ -401,8 +401,7 @@ PlayerCanvas.prototype.drawKeyboardBack = function(ctx, canvasOffsetX, dimension
   }
 }
 
-// TODO imrpove to take multiple units in one pass
-PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_no, canvasOffsetX, currBeat, dimensions) {
+PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_nos, canvasOffsetX, currBeat, dimensions) {
   let currClock = currBeat * this.master.beatClock;
   let clockPerPx = this.clockPerPx();
 
@@ -410,32 +409,50 @@ PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_no, canvasOffsetX, curr
   let leftBound  = clockPerPx * (canvasOffsetX);
   let rightBound = clockPerPx * (canvasOffsetX + dimensions.w);
 
-  let notes = this.notes[unit_no];
-  if (notes.length === 0) return;
-  let startIdx = notes[Math.max(notes.lastPositionOf(leftBound), 0)];
+  // an array of objects that can consume events in order and draw notes in response
+  let unit_states = new Array(unit_nos.length);
+  let minStartIdx = Infinity;
+  for (let unit_no = 0; unit_no < unit_states.length; ++unit_no) {
+    unit_states[unit_no] = null;
+    if (unit_nos[unit_no] === false || this.notes[unit_no].length === 0) continue;
+    let notes = this.notes[unit_no];
+    let startIdx = notes[Math.max(notes.lastPositionOf(leftBound), 0)];
+    if (minStartIdx > startIdx) minStartIdx = startIdx;
 
-  let currentKey = this.keyAt(unit_no, this.evels[startIdx].clock);
-  let noteStart = Infinity, noteEnd = Infinity;
-  let drawNote = (end) => this.drawKeyboardNote(ctx, this.isStarted(), unit_no, currentKey, noteStart, end, currClock);
-  for (let i = startIdx; i < this.evels.length && this.evels[i].clock < rightBound; ++i) {
-    let e = this.evels[i];
-    if (e.unit_no !== unit_no) continue;
-    if (e.clock >= noteEnd) { // if at end of note, draw just-finished note
-      drawNote(noteEnd);
-      noteStart = Infinity; noteEnd = Infinity;
-    }
-    switch (e.kind) {
-      case "ON": noteStart = e.clock; noteEnd = e.clock + e.value; break;
-      case "KEY":
-        // if in middle of note, draw just-finished note
-        if (e.clock > noteStart) drawNote(e.clock);
-        currentKey = e.value;
-        noteStart = e.clock;
-        break;
-      default: break;
-    }
+    let currentKey = this.keyAt(unit_no, this.evels[startIdx].clock);
+    let noteStart = Infinity, noteEnd = Infinity;
+    let drawNote = (end) =>
+      this.drawKeyboardNote(ctx, this.isStarted(), unit_no, currentKey, noteStart, end, currClock);
+    unit_states[unit_no] = {
+      'startIdx': startIdx,
+      'consume': (e) => {
+        if (e.clock >= noteEnd) { // if at end of note, draw just-finished note
+          drawNote(noteEnd);
+          noteStart = Infinity; noteEnd = Infinity;
+        }
+        switch (e.kind) {
+          case "ON": noteStart = e.clock; noteEnd = e.clock + e.value; break;
+          case "KEY":
+            // if in middle of note, draw just-finished note
+            if (e.clock > noteStart) drawNote(e.clock);
+            currentKey = e.value;
+            noteStart = e.clock;
+            break;
+          default: break;
+        }
+      },
+      // draw the (possible) note continuation at end
+      'conclude': () => { if (rightBound >= noteStart) drawNote(noteEnd); }
+    };
   }
-  if (rightBound >= noteStart) drawNote(noteEnd); // draw the note continuation at end
+
+  for (let i = minStartIdx; i < this.evels.length && this.evels[i].clock < rightBound; ++i) {
+    let e = this.evels[i];
+    if (unit_nos[e.unit_no] !== null && unit_states[e.unit_no].startIdx <= i)
+      unit_states[e.unit_no].consume(e);
+  }
+
+  for (let state of unit_states) if (state !== null) state.conclude();
 }
 
 PlayerCanvas.prototype.drawUnitRows = function(ctx, canvasOffsetX, currBeat, dimensions) {
@@ -491,9 +508,7 @@ PlayerCanvas.prototype.drawTimeline = function (ctx, currBeat, dimensions) {
     switch (this.view) {
       case "keyboard":
         this.drawKeyboardBack(ctx, canvasOffsetX, dimensions);
-        for (let i = this.units.length-1; i >= 0; --i)
-          if (this.drawKey[i])
-            this.drawKeyboard(ctx, i, canvasOffsetX, currBeat, dimensions);
+        this.drawKeyboard(ctx, this.drawKey, canvasOffsetX, currBeat, dimensions);
         break;
       case "unit":
       default:
