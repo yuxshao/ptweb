@@ -1,6 +1,23 @@
 "use strict";
 
 import { SortedList } from "./lib/sorted-list.js"
+import { getColorGen } from "./colors.js"
+
+const DEFAULT_MASTER = {
+  beatNum: 4, beatTempo: 120, beatClock: 480,
+  measNum: 1, repeatMeas: 0, lastMeas: 0
+};
+
+// from pxtnEvelist.h
+const DEFAULT_VOLUME   = 104;
+const DEFAULT_VELOCITY = 104;
+const DEFAULT_KEY      = 0x6000;
+const BASE_MEASURE_WIDTH = 192;
+
+const KEYBOARD_NOTE_NUM = 88;
+const KEYBOARD_BASE_SHIFT = 39;
+const KEYBOARD_KEY_HEIGHT = 8;
+const KEYBOARD_NOTE_HEIGHT = 4;
 
 const numbers_green = new Image(80, 8);
 const flags = new Image(81, 16);
@@ -17,11 +34,13 @@ flags.repeat_rect = { x: 0,  y: 8, w: 36, h: 8 };
 playhead.centre = { x: 4, y: 4 };
 playhead.src = './res/playhead.png';
 
-unitbars.top_rect      = { x: 0,  y: 0,  w: 145, h: 32  };
-unitbars.side_rect     = { x: 0,  y: 32, w: 16,  h: 160 };
-unitbars.regular_rect  = { x: 16, y: 32, w: 128, h: 16  };
-unitbars.selected_rect = { x: 16, y: 48, w: 128, h: 16  };
-unitbars.nothing_rect  = { x: 16, y: 64, w: 128, h: 16  };
+unitbars.menu_rect_unit = { x: 0,  y: 0,  w: 145, h: 16  };
+unitbars.menu_rect_key  = { x: 0,  y: 16, w: 145, h: 16  };
+unitbars.tab_rect       = { x: 0,  y: 32, w: 145, h: 16  };
+unitbars.side_rect      = { x: 0,  y: 48, w: 16,  h: 160 };
+unitbars.regular_rect   = { x: 16, y: 48, w: 128, h: 16  };
+unitbars.selected_rect  = { x: 16, y: 64, w: 128, h: 16  };
+unitbars.nothing_rect   = { x: 16, y: 80, w: 128, h: 16  };
 unitbars.src = './res/unitbars.png';
 
 var imagesToLoad = [numbers_green, flags, playhead, unitbars];
@@ -55,52 +74,9 @@ function drawUnitNote(ctx, x, y, w) {
   ctx.fillRect(x, y-5, 1, 10);
 }
 
-function noteColorGen(r1, g1, r2, g2, b2, b3) {
-  // interpolate c1 to c2 until default velocities and volume
-  // c2 to c3 from to max velocity and volume
-  return function (is_playing, vel, vol) {
-    let r, g, b;
-    if (!is_playing) { r = r1; g = g1; b = b2; }
-    else {
-      let raw_p = vel * vol / 128 / 128;
-      let def_p = DEFAULT_VELOCITY * DEFAULT_VOLUME / 128 / 128;
-      let p = Math.min((0.15 + 0.85 * (vel / DEFAULT_VELOCITY)) * vol / DEFAULT_VOLUME, 1);
-      let pb = Math.max(0, (raw_p - def_p) / (1 - def_p));
-      r = r2 * p + (1 - p) * r1;
-      g = g2 * p + (1 - p) * g1;
-      b = b3 * pb + (1 - pb) * b2;
-    }
-    return "rgb(" + r + ", " + g + ", " + b + ")";
-  }
-}
-
-let noteColor = (function () {
-  let r1 = 240, g1 = 128;
-  let r2 = 255, g2 = 255, b2 = 0;
-  let                     b3 = 128;
-  return noteColorGen(r1, g1, r2, g2, b2, b3);
-})();
-
-let keyboardNoteColor = (function () {
-  let r1 = 192, g1 = 96;
-  let r2 = 240, g2 = 128, b2 = 0;
-  let                     b3 = 0;
-  return noteColorGen(r1, g1, r2, g2, b2, b3);
-})();
-
 function middleSnap(x) { return Math.floor(x) + 0.5; }
 
-
-const DEFAULT_MASTER = {
-  beatNum: 4, beatTempo: 120, beatClock: 480,
-  measNum: 1, repeatMeas: 0, lastMeas: 0
-};
-
-// from pxtnEvelist.h
-const DEFAULT_VOLUME   = 104;
-const DEFAULT_VELOCITY = 104;
-const DEFAULT_KEY      = 0x6000;
-const BASE_MEASURE_WIDTH = 192;
+let getColor = getColorGen(DEFAULT_VELOCITY, DEFAULT_VOLUME);
 
 export let PlayerCanvas = function (canvas, canvasFixed) {
   this.unitOffsetY = 32;
@@ -115,9 +91,32 @@ export let PlayerCanvas = function (canvas, canvasFixed) {
   this.setZoom(1);
   this.setSnap('meas');
   this.setScale(1);
+  this.addMenuListeners();
   this.view = "keyboard";
 }
 
+PlayerCanvas.prototype.toLocalCoords = function (point) {
+  // TODO use currentTransform when it becomes more widely available
+  return { x: point.x/this.scale, y: point.y/this.scale - 1 }
+}
+
+function rectContains(rect, point) {
+  return (rect.x <= point.x && rect.y <= point.y &&
+          rect.x + rect.w > point.x && rect.y + rect.h > point.y);
+}
+
+let unitTabRect = { x:45, y:0, w:39, h:15 };
+let keyTabRect  = { x:84, y:0, w:61, h:15 };
+PlayerCanvas.prototype.addMenuListeners = function() {
+  this.canvasFixed.addEventListener('click', (e) => {
+    let coord = this.toLocalCoords({x:e.offsetX, y:e.offsetY});
+    if (rectContains(unitTabRect, coord))
+      this.view = 'unit';
+    if (rectContains(keyTabRect, coord))
+      this.view = 'keyboard';
+    this.forceRedraw();
+  });
+}
 PlayerCanvas.prototype.setZoom = function (zoom) {
   this.measureWidth = BASE_MEASURE_WIDTH * zoom;
 }
@@ -129,7 +128,7 @@ PlayerCanvas.prototype.setScale = function (scale) {
 };
 
 PlayerCanvas.prototype.setData = function(units, evels, master) {
-  this.lastDrawState = {};
+  this.forceRedraw();
   this.master = master;
   this.setUnits(units);
   this.evels = evels;
@@ -165,10 +164,6 @@ PlayerCanvas.prototype.setUnits = function (units) {
   this.updateCanvasHeight();
 }
 
-const KEYBOARD_NOTE_NUM = 88;
-const KEYBOARD_BASE_SHIFT = 39;
-const KEYBOARD_KEY_HEIGHT = 8;
-const KEYBOARD_NOTE_HEIGHT = 4;
 PlayerCanvas.prototype.updateCanvasHeight = function () {
   let height = 0;
   switch (this.view) {
@@ -178,7 +173,7 @@ PlayerCanvas.prototype.updateCanvasHeight = function () {
     case "unit":
     default:
       let l = Math.ceil(this.units.length/10) * 10;
-      height = unitbars.regular_rect.h * l + unitbars.top_rect.h;
+      height = unitbars.regular_rect.h * l + unitbars.menu_rect_unit.h + unitbars.tab_rect.h;
       break;
   }
   this.canvas.height = height * this.scale;
@@ -333,11 +328,14 @@ PlayerCanvas.prototype.drawKeyboardNote = function(ctx, started, unit_no, key, s
   let playing = (started && start <= current && end > current);
   let clockPerPx = this.clockPerPx();
 
-  let offset = KEYBOARD_KEY_HEIGHT * (KEYBOARD_BASE_SHIFT + (DEFAULT_KEY - key) / 256) - KEYBOARD_NOTE_HEIGHT/2;
-  ctx.fillStyle = keyboardNoteColor(playing, this.velocityAt(unit_no, current), this.volumeAt(unit_no, current));
-  ctx.fillRect(start / clockPerPx, KEYBOARD_KEY_HEIGHT/2 + offset, (end - start) / clockPerPx, KEYBOARD_NOTE_HEIGHT);
-  ctx.fillStyle = noteColor(playing, this.velocityAt(unit_no, current), this.volumeAt(unit_no, current));
-  ctx.fillRect(start / clockPerPx, KEYBOARD_KEY_HEIGHT/2 + offset, 2, KEYBOARD_NOTE_HEIGHT);
+  let offset = KEYBOARD_KEY_HEIGHT * (KEYBOARD_BASE_SHIFT + (DEFAULT_KEY - key) / 256);
+  let y = offset + (KEYBOARD_KEY_HEIGHT - KEYBOARD_NOTE_HEIGHT)/2;
+  let w = (end - start) / clockPerPx;
+  let vel = this.velocityAt(unit_no, current), vol = this.volumeAt(unit_no, current);
+  ctx.fillStyle = getColor[unit_no % getColor.length].key(playing, vel, vol);
+  ctx.fillRect(start / clockPerPx, y, (end - start) / clockPerPx, KEYBOARD_NOTE_HEIGHT);
+  ctx.fillStyle = getColor[unit_no % getColor.length].note(playing, vel, vol);
+  ctx.fillRect(start / clockPerPx, y, 2, KEYBOARD_NOTE_HEIGHT);
 }
 
 let pianoPattern = [false, true, false, true, false, false, true, false, true, false, false, true];
@@ -373,7 +371,7 @@ PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_no, canvasOffsetX, curr
     }
     switch (e.kind) {
       case "ON": noteStart = e.clock; noteEnd = e.clock + e.value; break;
-      case "KEY": 
+      case "KEY":
         // if in middle of note, draw just-finished note
         if (e.clock > noteStart) drawNote(e.clock);
         currentKey = e.value;
@@ -405,7 +403,7 @@ PlayerCanvas.prototype.drawUnitRows = function(ctx, canvasOffsetX, currBeat, dim
     for (let i = leftIndex; i < rightIndex; ++i) {
       let e = this.evels[notes[i]];
       let playing = (this.isStarted() && e.clock <= currClock && e.clock + e.value > currClock);
-      ctx.fillStyle = noteColor(playing,
+      ctx.fillStyle = getColor[unit_no % getColor.length].note(playing,
         this.velocityAt(e.unit_no, currClock), this.volumeAt(e.unit_no, currClock));
       drawUnitNote(ctx, e.clock / clockPerPx, unit_no * 16 + 8, e.value / clockPerPx);
     }
@@ -440,10 +438,15 @@ PlayerCanvas.prototype.drawTimeline = function (ctx, currBeat, dimensions) {
   });
 }
 
+// sometimes you don't have to redraw if nothing's changed
+PlayerCanvas.prototype.forceRedraw = function () {
+  this.lastDrawState = {};
+}
+
 PlayerCanvas.prototype.needToDraw = function () {
   let last = this.lastDrawState;
   let now = {
-    time:   this.getTime(),
+    time:   this.getTime(), // canvasOffsetX is not enough - playhead & highlighted notes change
     width:  this.canvas.width,
     height: this.canvas.height
   }
@@ -511,7 +514,14 @@ PlayerCanvas.prototype.draw = function () {
     this.drawPlayhead(ctx, currBeat, dimensions);
   });
   ctx.restore();
-  drawImageRect(ctx, unitbars, unitbars.top_rect, 0, 0); // top-left tabs
+  // top-left tabs
+  let rect;
+  switch (this.view) {
+    case "keyboard":      rect = unitbars.menu_rect_key; break;
+    case "unit": default: rect = unitbars.menu_rect_unit; break;
+  }
+  drawImageRect(ctx, unitbars, rect, 0, 0);
+  drawImageRect(ctx, unitbars, unitbars.tab_rect, 0, rect.h);
 
   ctx.fillStyle = BGCOLOR; // fill widget offset remainder
   ctx.fillRect(0, -1, this.canvas.width, 1);
