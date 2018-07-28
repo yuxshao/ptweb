@@ -107,8 +107,8 @@ function rectContains(rect, point) {
 
 let unitTabRect = { x:45, y:0, w:39, h:15 };
 let keyTabRect  = { x:84, y:0, w:61, h:15 };
-let keyToggleRect  = { x:2,  y:2, w:16, h:12 };
-let unitToggleRect = { x:20, y:2, w:16, h:12 };
+let keyToggleRect  = { x:1,  y:1, w:18, h:14 };
+let unitToggleRect = { x:19, y:1, w:18, h:14 };
 PlayerCanvas.prototype.addMenuListeners = function() {
   // switch tab
   this.canvasFixed.addEventListener('click', (e) => {
@@ -121,7 +121,8 @@ PlayerCanvas.prototype.addMenuListeners = function() {
   });
 
   // toggle
-  this.canvas.addEventListener('click', (e) => {
+  this.canvas.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
     let coord = this.toLocalCoords({x:e.offsetX, y:e.offsetY});
     coord.y -= this.unitOffsetY;
     coord.x -= unitbars.side_rect.w;
@@ -134,6 +135,9 @@ PlayerCanvas.prototype.addMenuListeners = function() {
     }
     this.updateCanvasHeight();
   });
+
+  this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+  this.canvasFixed.addEventListener('contextmenu', (e) => e.preventDefault());
 }
 PlayerCanvas.prototype.setZoom = function (zoom) {
   this.measureWidth = BASE_MEASURE_WIDTH * zoom;
