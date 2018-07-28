@@ -1,6 +1,7 @@
 "use strict";
 
 import { SortedList } from "./lib/sorted-list.js"
+import { DeferredQueue } from "./lib/deferred-queue.js"
 import { getColorGen } from "./colors.js"
 
 const DEFAULT_MASTER = {
@@ -401,6 +402,11 @@ PlayerCanvas.prototype.drawKeyboardBack = function(ctx, canvasOffsetX, dimension
   }
 }
 
+function drawKeyboardNoteForDeferredQueue(data) {
+  data.obj.drawKeyboardNote(data.ctx, data.obj.isStarted(), data.unit_no,
+    data.currentKey, data.noteStart, data.noteEnd, data.currClock);
+}
+
 PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_nos, canvasOffsetX, currBeat, dimensions) {
   let currClock = currBeat * this.master.beatClock;
   let clockPerPx = this.clockPerPx();
@@ -412,19 +418,27 @@ PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_nos, canvasOffsetX, cur
   // an array of objects that can consume events in order and draw notes in response
   let unit_states = new Array(unit_nos.length);
   let minStartIdx = Infinity;
+  // drawQueue is used so enforce notes starting earlier to be drawn earlier.
+  let drawQueue = new DeferredQueue(drawKeyboardNoteForDeferredQueue);
   for (let unit_no = 0; unit_no < unit_states.length; ++unit_no) {
     unit_states[unit_no] = null;
     if (unit_nos[unit_no] === false || this.notes[unit_no].length === 0) continue;
     let notes = this.notes[unit_no];
     let startIdx = notes[Math.max(notes.lastPositionOf(leftBound), 0)];
+    let lastQueueId = null;
     if (minStartIdx > startIdx) minStartIdx = startIdx;
 
     let currentKey = this.keyAt(unit_no, this.evels[startIdx].clock);
     let noteStart = Infinity, noteEnd = Infinity;
     // TODO: currently wrong. only single segment of note is highlighted instead
-    // of whole on press
+    // of whole on press. should be fixable (just send the on start/end)
+
+    // schedules a note to be drawn as soon as all starting before it are drawn
     let drawNote = (end) =>
-      this.drawKeyboardNote(ctx, this.isStarted(), unit_no, currentKey, noteStart, end, currClock);
+      drawQueue.fill(lastQueueId, {
+        'obj': this, 'ctx': ctx, 'unit_no': unit_no, 'currentKey': currentKey,
+        'noteStart': noteStart, 'noteEnd': end, 'currClock': currClock
+      });
     unit_states[unit_no] = {
       'startIdx': startIdx,
       'consume': (e) => {
@@ -433,10 +447,13 @@ PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_nos, canvasOffsetX, cur
           noteStart = Infinity; noteEnd = Infinity;
         }
         switch (e.kind) {
-          case "ON": noteStart = e.clock; noteEnd = e.clock + e.value; break;
+          case "ON":
+            lastQueueId = drawQueue.add(); // start a new one (reserve its position)
+            noteStart = e.clock; noteEnd = e.clock + e.value;
+            break;
           case "KEY":
-            // if in middle of note, draw just-finished note
-            if (e.clock > noteStart) drawNote(e.clock);
+            // if in middle of note, draw just-finished note and start a new one
+            if (e.clock > noteStart) { drawNote(e.clock); lastQueueId = drawQueue.add(); }
             currentKey = e.value;
             noteStart = e.clock;
             break;
@@ -454,8 +471,6 @@ PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_nos, canvasOffsetX, cur
       unit_states[e.unit_no].consume(e);
   }
 
-  // TODO: draw order is by end time, except if it goes past end, in which case it's by unit no
-  // causes animation artefact
   for (let state of unit_states) if (state !== null) state.conclude();
 }
 
