@@ -107,13 +107,31 @@ function rectContains(rect, point) {
 
 let unitTabRect = { x:45, y:0, w:39, h:15 };
 let keyTabRect  = { x:84, y:0, w:61, h:15 };
+let keyToggleRect  = { x:2,  y:2, w:16, h:12 };
+let unitToggleRect = { x:20, y:2, w:16, h:12 };
 PlayerCanvas.prototype.addMenuListeners = function() {
+  // switch tab
   this.canvasFixed.addEventListener('click', (e) => {
     let coord = this.toLocalCoords({x:e.offsetX, y:e.offsetY});
     if (rectContains(unitTabRect, coord))
       this.view = 'unit';
     if (rectContains(keyTabRect, coord))
       this.view = 'keyboard';
+    this.updateCanvasHeight();
+  });
+
+  // toggle
+  this.canvas.addEventListener('click', (e) => {
+    let coord = this.toLocalCoords({x:e.offsetX, y:e.offsetY});
+    coord.y -= this.unitOffsetY;
+    coord.x -= unitbars.side_rect.w;
+    for (let i = 0; i < this.units.length; ++i) {
+      if (rectContains(keyToggleRect, coord))
+        this.drawKey[i] = !this.drawKey[i];
+      if (rectContains(unitToggleRect, coord))
+        this.drawUnit[i] = !this.drawUnit[i];
+      coord.y -= unitbars.regular_rect.h;
+    }
     this.updateCanvasHeight();
   });
 }
@@ -138,12 +156,16 @@ PlayerCanvas.prototype.setData = function(units, evels, master) {
   this.vels  = new Array(units.length);
   this.vols  = new Array(units.length);
   this.keys  = new Array(units.length);
+  this.drawKey  = new Array(units.length);
+  this.drawUnit = new Array(units.length);
   let that = this;
   for (let i = 0; i < units.length; ++i) {
     this.notes[i] = new SortedList((x) => evels[x].clock);
     this.vels [i] = new SortedList((x) => evels[x].clock);
     this.vols [i] = new SortedList((x) => evels[x].clock);
     this.keys [i] = new SortedList((x) => evels[x].clock);
+    this.drawKey [i] = true;
+    this.drawUnit[i] = false;
   }
 
   for (let i = 0; i < evels.length; ++i) {
@@ -178,6 +200,7 @@ PlayerCanvas.prototype.updateCanvasHeight = function () {
   }
   this.canvas.height = height * this.scale;
   this.canvasFixed.height = Math.min((this.unitOffsetY + 1) * this.scale, this.canvas.height);
+  this.forceRedraw();
 }
 
 PlayerCanvas.prototype.velocityAt = function (unit_no, clock) {
@@ -198,6 +221,19 @@ PlayerCanvas.prototype.keyAt = function (unit_no, clock) {
   return this.evels[this.keys[unit_no][i]].value;
 }
 
+const UNIT_LIST_BGCOLOR = "#69656D";
+PlayerCanvas.prototype.drawToggle = function(ctx, x, y, getColor) {
+  ctx.save();
+  ctx.translate(x+1, y+1);
+  ctx.fillStyle = UNIT_LIST_BGCOLOR;
+  ctx.fillRect(1, 1, 13, 9);
+  ctx.fillStyle = getColor.key(0, 0, 0);
+  ctx.fillRect(0, 0, 13, 9);
+  ctx.fillStyle = getColor.note(0, 0, 0);
+  ctx.fillRect(1, 1, 12, 8);
+  ctx.restore();
+}
+
 const UNIT_TEXT_PADDING = 40;
 PlayerCanvas.prototype.drawUnitList = function (ctx, height) {
   // left bar
@@ -215,6 +251,12 @@ PlayerCanvas.prototype.drawUnitList = function (ctx, height) {
     ctx.save() // translate & clip
     ctx.translate(unitbars.side_rect.w, i * unitbars.regular_rect.h);
     drawImageRect(ctx, unitbars, unitbars.regular_rect, 0, 0);
+
+    if (this.drawKey[i])
+      this.drawToggle(ctx, 3, 2,  getColor[i % getColor.length]);
+    if (this.drawUnit[i])
+      this.drawToggle(ctx, 21, 2, getColor[i % getColor.length]);
+
     ctx.rect(0, 0, unitbars.regular_rect.w, unitbars.regular_rect.h);
     ctx.clip();
     ctx.fillText(this.units[i], UNIT_TEXT_PADDING, unitbars.regular_rect.h / 2);
@@ -350,6 +392,7 @@ PlayerCanvas.prototype.drawKeyboardBack = function(ctx, canvasOffsetX, dimension
   }
 }
 
+// TODO imrpove to take multiple units in one pass
 PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_no, canvasOffsetX, currBeat, dimensions) {
   let currClock = currBeat * this.master.beatClock;
   let clockPerPx = this.clockPerPx();
@@ -429,7 +472,8 @@ PlayerCanvas.prototype.drawTimeline = function (ctx, currBeat, dimensions) {
       case "keyboard":
         this.drawKeyboardBack(ctx, canvasOffsetX, dimensions);
         for (let i = this.units.length-1; i >= 0; --i)
-          this.drawKeyboard(ctx, i, canvasOffsetX, currBeat, dimensions);
+          if (this.drawKey[i])
+            this.drawKeyboard(ctx, i, canvasOffsetX, currBeat, dimensions);
         break;
       case "unit":
       default:
