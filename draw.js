@@ -17,7 +17,7 @@ const BASE_MEASURE_WIDTH = 192;
 const KEYBOARD_NOTE_NUM = 88;
 const KEYBOARD_BASE_SHIFT = 39;
 const KEYBOARD_KEY_HEIGHT = 8;
-const KEYBOARD_NOTE_HEIGHT = 4;
+const KEYBOARD_NOTE_HEIGHT = 5;
 
 const numbers_green = new Image(80, 8);
 const flags = new Image(81, 16);
@@ -329,7 +329,7 @@ PlayerCanvas.prototype.drawKeyboardNote = function(ctx, started, unit_no, key, s
   let clockPerPx = this.clockPerPx();
 
   let offset = KEYBOARD_KEY_HEIGHT * (KEYBOARD_BASE_SHIFT + (DEFAULT_KEY - key) / 256);
-  let y = offset + (KEYBOARD_KEY_HEIGHT - KEYBOARD_NOTE_HEIGHT)/2;
+  let y = offset + KEYBOARD_KEY_HEIGHT/2 - Math.floor(KEYBOARD_NOTE_HEIGHT)/2;
   let w = (end - start) / clockPerPx;
   let vel = this.velocityAt(unit_no, current), vol = this.volumeAt(unit_no, current);
   ctx.fillStyle = getColor[unit_no % getColor.length].key(playing, vel, vol);
@@ -425,7 +425,7 @@ PlayerCanvas.prototype.drawTimeline = function (ctx, currBeat, dimensions) {
     switch (this.view) {
       case "keyboard":
         this.drawKeyboardBack(ctx, canvasOffsetX, dimensions);
-        for (let i = 0; i < this.units.length; ++i)
+        for (let i = this.units.length-1; i >= 0; --i)
           this.drawKeyboard(ctx, i, canvasOffsetX, currBeat, dimensions);
         break;
       case "unit":

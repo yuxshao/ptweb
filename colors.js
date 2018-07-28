@@ -15,10 +15,10 @@ let colors = [
     "key" : ["#483EFF", "#6979FF", "#B4C9FF"] },
   { "note": ["#5BB308", "#96FF33", "#DAFFB8"], // yellow-green 6
     "key" : ["#479100", "#5BB308", "#96FF33"] },
-  { "note": ["#FF4CD4", "#FFA9FF", "#FFE0FF"], // magenta 2
+  { "note": ["#FC32CB", "#FFA9FF", "#FFE0FF"], // magenta 2
     "key" : ["#DF0083", "#FF4CD4", "#FFA9FF"] },
   { "note": ["#00C060", "#31FF98", "#C5FFE2"], // blue-green 5
-    "key" : ["#00944A", "#00C060", "#00E874"] },
+    "key" : ["#008041", "#00C060", "#00E874"] },
   { "note": ["#FF775D", "#FFC39C", "#FFEDD9"], // red 1
     "key" : ["#D82E2E", "#FF775D", "#FFC39C"] },
   { "note": ["#00BDFF", "#CFE8FF", "#90FFFF"], // cyan 4
