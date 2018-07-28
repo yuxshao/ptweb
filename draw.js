@@ -114,7 +114,7 @@ PlayerCanvas.prototype.addMenuListeners = function() {
       this.view = 'unit';
     if (rectContains(keyTabRect, coord))
       this.view = 'keyboard';
-    this.forceRedraw();
+    this.updateCanvasHeight();
   });
 }
 PlayerCanvas.prototype.setZoom = function (zoom) {
@@ -448,7 +448,9 @@ PlayerCanvas.prototype.needToDraw = function () {
   let now = {
     time:   this.getTime(), // canvasOffsetX is not enough - playhead & highlighted notes change
     width:  this.canvas.width,
-    height: this.canvas.height
+    height: this.canvas.height,
+    scale:  this.scale,
+    view:   this.view
   }
   let need = false;
   for (let prop in now)
