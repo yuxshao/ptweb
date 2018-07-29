@@ -161,12 +161,19 @@ output > p, output > .comment {
 
 footer {
   border-top:1px solid black;
-  margin:10px;
+  margin:20px;
   display:block; float:left;
   clear: both;
+  border: 1px 0 0 0 solid black;
   padding:10px 0px;
 }
 
+.help {
+  margin:20px;
+  display:block;
+  float:left;
+  padding: 10px 0px;
+}
 #playerContainer canvas { display:block; }
 #playerFixed { position:absolute; top:0; left:0; }
 #playerMenu  { position:absolute; top:0; left:0; }
