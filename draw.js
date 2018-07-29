@@ -468,6 +468,9 @@ PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_nos, canvasOffsetX, cur
     };
   }
 
+  // TODO: consider some way to start later...
+  // e.g. only consider the startIdxes, then start at the leftBound
+  // and ignore startIdx if the note already ended before leftBound
   for (let i = minStartIdx; i < this.evels.length && this.evels[i].clock < rightBound; ++i) {
     let e = this.evels[i];
     if (unit_states[e.unit_no] !== null && unit_states[e.unit_no].startIdx <= i)
