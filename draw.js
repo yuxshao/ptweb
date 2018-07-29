@@ -236,6 +236,13 @@ PlayerCanvas.prototype.velocityAt = function (unit_no, clock) {
   return this.evels[this.vels[unit_no][i]].value;
 }
 
+PlayerCanvas.prototype.isPlaying = function (unit_no, clock) {
+  let i = this.notes[unit_no].lastPositionOf(clock);
+  if (i == -1) return false;
+  let e = this.evels[this.notes[unit_no][i]];
+  return e.clock + e.value > clock;
+}
+
 PlayerCanvas.prototype.volumeAt = function (unit_no, clock) {
   let i = this.vols[unit_no].lastPositionOf(clock);
   if (i == -1) return DEFAULT_VOLUME;
@@ -249,20 +256,21 @@ PlayerCanvas.prototype.keyAt = function (unit_no, clock) {
 }
 
 const UNIT_LIST_BGCOLOR = "#69656D";
-PlayerCanvas.prototype.drawToggle = function(ctx, x, y, getColor) {
+PlayerCanvas.prototype.drawToggle = function(ctx, x, y, unit_no, playing, vel, vol) {
   ctx.save();
   ctx.translate(x+1, y+1);
   ctx.fillStyle = UNIT_LIST_BGCOLOR;
   ctx.fillRect(1, 1, 13, 9);
-  ctx.fillStyle = getColor.key(0, 0, 0);
+  ctx.fillStyle = this.getUnitColor(unit_no).key(playing, vel, vol);
   ctx.fillRect(0, 0, 13, 9);
-  ctx.fillStyle = getColor.note(0, 0, 0);
+  ctx.fillStyle = this.getUnitColor(unit_no).note(playing, vel, vol);
   ctx.fillRect(1, 1, 12, 8);
   ctx.restore();
 }
 
 const UNIT_TEXT_PADDING = 40;
-PlayerCanvas.prototype.drawUnitList = function (ctx, height) {
+PlayerCanvas.prototype.drawUnitList = function (ctx, height, currBeat) {
+  let currClock = currBeat * this.master.beatClock;
   // left bar
   ctx.translate(0, this.unitOffsetY);
   for (let y = 0; y < height; y += unitbars.side_rect.h)
@@ -279,10 +287,13 @@ PlayerCanvas.prototype.drawUnitList = function (ctx, height) {
   for (i = 0; i < this.units.length; ++i) {
     drawImageRect(ctx, unitbars, unitbars.regular_rect, 0, 0);
 
+    let vel = this.velocityAt(i, currClock);
+    let vol = this.volumeAt(i, currClock);
+    let is_playing = this.isPlaying(i, currClock);
     if (this.unitDrawOptions[i].key)
-      this.drawToggle(ctx, 3, 2,  this.getUnitColor(i));
+      this.drawToggle(ctx, 3, 2, i, is_playing, vel, vol);
     if (this.unitDrawOptions[i].unit)
-      this.drawToggle(ctx, 21, 2, this.getUnitColor(i));
+      this.drawToggle(ctx, 21, 2, i, is_playing, vel, vol);
 
     ctx.fillText(this.units[i], UNIT_TEXT_PADDING, unitbars.regular_rect.h / 2);
     ctx.translate(0, unitbars.regular_rect.h);
@@ -401,6 +412,15 @@ PlayerCanvas.prototype.getSongPositionShift = function(currBeat, dim_w) {
   return shiftX - playX;
 }
 
+let pianoPattern = [false, true, false, true, false, false, true, false, true, false, false, true];
+PlayerCanvas.prototype.drawKeyboardBack = function(ctx, canvasOffsetX, dimensions) {
+  for (let i = 0; i < dimensions.h / this.keyboardKeyHeight; ++i) {
+    let ind = ((i - KEYBOARD_BASE_SHIFT) % pianoPattern.length + pianoPattern.length) % pianoPattern.length;
+    ctx.fillStyle = (pianoPattern[ind] ? "#202020" : "#404040");
+    ctx.fillRect(canvasOffsetX, i * this.keyboardKeyHeight + 1, dimensions.w, this.keyboardKeyHeight-1);
+  }
+}
+
 function clamp(min, x, max) { return Math.max(Math.min(x, max), min); }
 // play_{start,end} correspond to start/end of press
 // start,end correspond to bounds of this rectangle (so maybe up to next key change)
@@ -421,15 +441,6 @@ PlayerCanvas.prototype.drawKeyboardNote = function(ctx, started,
   if (highlight) {
     ctx.fillStyle = this.getUnitColor(unit_no).highlight(playing, vel, vol);
     ctx.fillRect(start / clockPerPx, y, 2, this.keyboardNoteHeight);
-  }
-}
-
-let pianoPattern = [false, true, false, true, false, false, true, false, true, false, false, true];
-PlayerCanvas.prototype.drawKeyboardBack = function(ctx, canvasOffsetX, dimensions) {
-  for (let i = 0; i < dimensions.h / this.keyboardKeyHeight; ++i) {
-    let ind = ((i - KEYBOARD_BASE_SHIFT) % pianoPattern.length + pianoPattern.length) % pianoPattern.length;
-    ctx.fillStyle = (pianoPattern[ind] ? "#202020" : "#404040");
-    ctx.fillRect(canvasOffsetX, i * this.keyboardKeyHeight + 1, dimensions.w, this.keyboardKeyHeight-1);
   }
 }
 
@@ -668,7 +679,7 @@ PlayerCanvas.prototype.draw = function () {
   ctx.imageSmoothingEnabled = false;
   this.withWidgetTransform(ctx, () => {
     let dimensions = getDims(this.canvasMenu);
-    this.drawUnitList(ctx, dimensions.h);
+    this.drawUnitList(ctx, dimensions.h, currBeat);
   });
 
   // top
