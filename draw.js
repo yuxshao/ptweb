@@ -379,8 +379,8 @@ PlayerCanvas.prototype.getSongPositionShift = function(currBeat, dim_w) {
   return shiftX - playX;
 }
 
-PlayerCanvas.prototype.drawKeyboardNote = function(ctx, started, unit_no, key, start, end, current) {
-  let playing = (started && start <= current && end > current);
+PlayerCanvas.prototype.drawKeyboardNote = function(ctx, started, playing, highlight,
+    unit_no, key, start, end, current) {
   let clockPerPx = this.clockPerPx();
 
   let offset = KEYBOARD_KEY_HEIGHT * (KEYBOARD_BASE_SHIFT + (DEFAULT_KEY - key) / 256);
@@ -389,8 +389,10 @@ PlayerCanvas.prototype.drawKeyboardNote = function(ctx, started, unit_no, key, s
   let vel = this.velocityAt(unit_no, current), vol = this.volumeAt(unit_no, current);
   ctx.fillStyle = getColor[unit_no % getColor.length].key(playing, vel, vol);
   ctx.fillRect(start / clockPerPx, y, (end - start) / clockPerPx, KEYBOARD_NOTE_HEIGHT);
-  ctx.fillStyle = getColor[unit_no % getColor.length].note(playing, vel, vol);
-  ctx.fillRect(start / clockPerPx, y, 2, KEYBOARD_NOTE_HEIGHT);
+  if (highlight) {
+    ctx.fillStyle = getColor[unit_no % getColor.length].note(playing, vel, vol);
+    ctx.fillRect(start / clockPerPx, y, 2, KEYBOARD_NOTE_HEIGHT);
+  }
 }
 
 let pianoPattern = [false, true, false, true, false, false, true, false, true, false, false, true];
@@ -403,8 +405,8 @@ PlayerCanvas.prototype.drawKeyboardBack = function(ctx, canvasOffsetX, dimension
 }
 
 function drawKeyboardNoteForDeferredQueue(data) {
-  data.obj.drawKeyboardNote(data.ctx, data.obj.isStarted(), data.unit_no,
-    data.currentKey, data.noteStart, data.noteEnd, data.currClock);
+  data.obj.drawKeyboardNote(data.ctx, data.obj.isStarted(), data.playing, data.highlight,
+    data.unit_no, data.currentKey, data.noteStart, data.noteEnd, data.currClock);
 }
 
 PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_nos, canvasOffsetX, currBeat, dimensions) {
@@ -430,32 +432,39 @@ PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_nos, canvasOffsetX, cur
 
     let currentKey = this.keyAt(unit_no, this.evels[startIdx].clock);
     let noteStart = Infinity, noteEnd = Infinity;
-    // TODO: currently wrong. only single segment of note is highlighted instead
-    // of whole on press. should be fixable (just send the on start/end)
-
+    let playing = null;
+    let highlight = null;
     // schedules a note to be drawn as soon as all starting before it are drawn
     let drawNote = (end) =>
       drawQueue.fill(lastQueueId, {
-        'obj': this, 'ctx': ctx, 'unit_no': unit_no, 'currentKey': currentKey,
-        'noteStart': noteStart, 'noteEnd': end, 'currClock': currClock
+        'obj': this, 'ctx': ctx, 'playing': playing, 'highlight': highlight, 'unit_no': unit_no,
+        'currentKey': currentKey, 'noteStart': noteStart, 'noteEnd': end, 'currClock': currClock
       });
     unit_states[unit_no] = {
       'startIdx': startIdx,
       'consume': (e) => {
         if (e.clock >= noteEnd) { // if at end of note, draw just-finished note
           drawNote(noteEnd);
+          playing = false;
           noteStart = Infinity; noteEnd = Infinity;
         }
         switch (e.kind) {
           case "ON":
             lastQueueId = drawQueue.add(); // start a new one (reserve its position)
             noteStart = e.clock; noteEnd = e.clock + e.value;
+            // CONTROVERSIAL: entire press is highlighted instead of up to note
+            // change. looks a bit weird but more faithful to the playback
+            playing = noteStart <= currClock && currClock < noteEnd;
+            highlight = true;
             break;
           case "KEY":
             // if in middle of note, draw just-finished note and start a new one
             if (e.clock > noteStart) {
               drawNote(e.clock);
               lastQueueId = drawQueue.add();
+              // CONTROVERSIAL: editor puts highlights for a note change, but I
+              // think it's more informative to do it when there's a new press.
+              highlight = false;
               noteStart = e.clock;
             }
             currentKey = e.value;
