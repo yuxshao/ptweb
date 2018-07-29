@@ -1,5 +1,6 @@
 # ptweb
-Pxtone web player with visuals. Work in progress.
+<div align="center"> <img src="screenshot.png" alt="ptweb" style="display: block" /> </div>
+<div align="center"> Pxtone web player with visuals. Work in progress.</div>
 
 ## Demo
 Try it out [here](https://yuxshao.github.io/ptweb/)!
