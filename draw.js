@@ -133,6 +133,12 @@ PlayerCanvas.prototype.addMenuListeners = function() {
     this.forceRedraw();
   });
 
+  // force redraw
+  this.canvas.addEventListener('mousedown', (e) => {
+    this.updateCanvasDims();
+    this.forceRedraw();
+  });
+
   // toggle on unpinned
   this.canvasMenu.addEventListener('mousedown', (e) => {
     let coord = this.toLocalCoords({x:e.offsetX, y:e.offsetY});
