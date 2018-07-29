@@ -204,7 +204,18 @@ PlayerCanvas.prototype.setData = function(units, evels, master) {
     let e = evels[i];
     this.evels.push(e);
     switch (e.kind) {
-      case "ON":       this.notes[e.unit_no].push(i); break;
+      case "ON":
+        // some malformed files (e.g. converted from org) have notes starting
+        // before the previous is finished. we cut off the earlier note here,
+        // since the keyboard rendering code relies on this invariant.
+        let notes = this.notes[e.unit_no];
+        if (notes.length > 0) {
+          let prev_e = this.evels[notes[notes.length-1]];
+          if (prev_e.clock + prev_e.value > e.clock)
+            prev_e.value = e.clock - prev_e.clock;
+        }
+        this.notes[e.unit_no].push(i);
+        break;
       case "VELOCITY": this.vels [e.unit_no].push(i); break;
       case "VOLUME":   this.vols [e.unit_no].push(i); break;
       case "KEY":      this.keys [e.unit_no].push(i); break;
