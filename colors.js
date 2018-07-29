@@ -25,8 +25,8 @@ let colors = [
     "key" : ["#479100", "#5BB308", "#96FF33"] },
 ];
 
-function colToStr(c) {
-  return "rgb(" + c.r + ", " + c.g + ", " + c.b + ")";
+function colToStr(c, a=1) {
+  return "rgba(" + c.r + ", " + c.g + ", " + c.b + ", " + a + ")";
 }
 
 function colLerp(c1, c2, p) {
@@ -51,14 +51,14 @@ function fromHex(hex){
     throw new Error('Bad Hex');
 }
 
-function noteColorGen(cs) {
+function noteColorGenSolid(cs) {
   let c1 = fromHex(cs[0]);
   let c2 = fromHex(cs[1]);
   let c3 = fromHex(cs[2]);
   // interpolate c1 to c2 until default velocities and volume
   // c2 to c3 from to max velocity and volume
+  // alpha = volume ratio
   return function (is_playing, vel, vol) {
-    let c = {r:null, g:null, b:null};
     if (!is_playing) return colToStr(c1);
     // velocity has a higher floor (e.g. 0.1 vel -> ~0.235*p) than volume (e.g. 0.1 vol -> 0.1*p)
     let p = Math.min((0.15 + 0.85 * (vel / DEFAULT_VELOCITY)) * vol / DEFAULT_VOLUME, 1);
@@ -70,14 +70,36 @@ function noteColorGen(cs) {
   }
 }
 
+function noteColorGen(cs) {
+  let c1 = fromHex(cs[0]);
+  let c2 = fromHex(cs[1]);
+  let c3 = fromHex(cs[2]);
+  // interpolate c1 to c2 until default velocities and volume
+  // c2 to c3 from to max velocity and volume
+  // alpha = volume ratio
+  return function (is_playing, vel, vol) {
+    let a = Math.min(0.1 + 0.9 * vol / DEFAULT_VOLUME, 1);
+    if (!is_playing) return colToStr(c1, a);
+    // velocity has a higher floor (e.g. 0.1 vel -> ~0.235*p) than volume (e.g. 0.1 vol -> 0.1*p)
+    let p = Math.min((0.15 + 0.85 * (vel / DEFAULT_VELOCITY)) * vol / DEFAULT_VOLUME, 1);
+    if (p < 1) return colToStr(colLerp(c1, c2, p), a);
+    let def_p = DEFAULT_VELOCITY * DEFAULT_VOLUME / 128 / 128;
+    let raw_p = vel * vol / 128 / 128;
+    p = Math.max(0, (raw_p - def_p) / (1 - def_p));
+    return colToStr(colLerp(c2, c3, p), a);
+  }
+}
+
+
 export let getColorGen = (function (default_vel, default_vol) {
   DEFAULT_VELOCITY = default_vel;
   DEFAULT_VOLUME   = default_vol;
   let getColor = new Array(colors.length);
   for (let i = 0; i < colors.length; ++i) {
     getColor[i] = {
-      "note": noteColorGen(colors[i].note),
-      "key":  noteColorGen(colors[i].key),
+      "note":      noteColorGenSolid(colors[i].note),
+      "highlight": noteColorGen     (colors[i].note),
+      "key":       noteColorGen     (colors[i].key),
     };
   }
   return getColor;

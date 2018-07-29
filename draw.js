@@ -401,18 +401,25 @@ PlayerCanvas.prototype.getSongPositionShift = function(currBeat, dim_w) {
   return shiftX - playX;
 }
 
-PlayerCanvas.prototype.drawKeyboardNote = function(ctx, started, playing, highlight,
-    unit_no, key, start, end, current) {
+function clamp(min, x, max) { return Math.max(Math.min(x, max), min); }
+// play_{start,end} correspond to start/end of press
+// start,end correspond to bounds of this rectangle (so maybe up to next key change)
+PlayerCanvas.prototype.drawKeyboardNote = function(ctx, started,
+    play_start, play_end, highlight, unit_no, key, start, end, current) {
   let clockPerPx = this.clockPerPx();
 
   let offset = this.keyboardKeyHeight * (KEYBOARD_BASE_SHIFT + (DEFAULT_KEY - key) / 256);
   let y = offset + this.keyboardKeyHeight/2 - Math.floor(this.keyboardNoteHeight)/2;
   let w = (end - start) / clockPerPx;
-  let vel = this.velocityAt(unit_no, current), vol = this.volumeAt(unit_no, current);
+  let vel = this.velocityAt(unit_no, current);
+  // considered taking min(start vol, end vol) if not playing but that makes
+  // some notes with long attack/decay show up weird
+  let vol = this.volumeAt(unit_no, clamp(play_start, current, play_end-1));
+  let playing = (current >= play_start && current < play_end);
   ctx.fillStyle = this.getUnitColor(unit_no).key(playing, vel, vol);
   ctx.fillRect(start / clockPerPx, y, (end - start) / clockPerPx, this.keyboardNoteHeight);
   if (highlight) {
-    ctx.fillStyle = this.getUnitColor(unit_no).note(playing, vel, vol);
+    ctx.fillStyle = this.getUnitColor(unit_no).highlight(playing, vel, vol);
     ctx.fillRect(start / clockPerPx, y, 2, this.keyboardNoteHeight);
   }
 }
@@ -427,7 +434,8 @@ PlayerCanvas.prototype.drawKeyboardBack = function(ctx, canvasOffsetX, dimension
 }
 
 function drawKeyboardNoteForDeferredQueue(data) {
-  data.obj.drawKeyboardNote(data.ctx, data.obj.isStarted(), data.playing, data.highlight,
+  data.obj.drawKeyboardNote(data.ctx, data.obj.isStarted(),
+    data.play_start, data.play_end, data.highlight,
     data.unit_no, data.currentKey, data.noteStart, data.noteEnd, data.currClock);
 }
 
@@ -456,21 +464,21 @@ PlayerCanvas.prototype.drawKeyboard = function(ctx, canvasOffsetX, currBeat, dim
 
     let currentKey = this.keyAt(unit_no, leftBound);
     let noteStart = Infinity, noteEnd = Infinity;
-    let playing = null;
+    let play_start = null, play_end = null;
     let highlight = null;
 
     // schedules a note to be drawn as soon as all starting before it are drawn
     let drawNote = (end) =>
       drawQueue.fill(lastQueueId, {
-        'obj': this, 'ctx': ctx, 'playing': playing, 'highlight': highlight, 'unit_no': unit_no,
-        'currentKey': currentKey, 'noteStart': noteStart, 'noteEnd': end, 'currClock': currClock
+        'obj': this, 'ctx': ctx, 'play_start': play_start, 'play_end': play_end,
+        'highlight': highlight, 'unit_no': unit_no, 'currClock': currClock,
+        'currentKey': currentKey, 'noteStart': noteStart, 'noteEnd': end
       });
 
     unit_states[unit_no] = {
       'consume': (e) => {
         if (e.clock >= noteEnd) { // if at end of note, draw just-finished note
           drawNote(noteEnd);
-          playing = false;
           noteStart = Infinity; noteEnd = Infinity;
         }
         switch (e.kind) {
@@ -479,7 +487,7 @@ PlayerCanvas.prototype.drawKeyboard = function(ctx, canvasOffsetX, currBeat, dim
             noteStart = e.clock; noteEnd = e.clock + e.value;
             // CONTROVERSIAL: entire press is highlighted instead of up to note
             // change. looks a bit weird but more faithful to the playback
-            playing = noteStart <= currClock && currClock < noteEnd;
+            play_start = noteStart; play_end = noteEnd;
             highlight = true;
             break;
           case "KEY":
