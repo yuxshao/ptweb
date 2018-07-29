@@ -150,16 +150,16 @@ PlayerCanvas.prototype.addMenuListeners = function() {
 PlayerCanvas.prototype.handleToggle = function (e, coord, pinned) {
   if (e.button !== 0 && e.button !== 2) return; // not left nor right
   for (let i = 0; i < this.units.length; ++i) {
+    let opt = this.unitDrawOptions[i];
     if (pinned !== null && this.unitDrawOptions[i].pinned !== pinned) continue;
     if (rectContains(keyToggleRect, coord)) {
-      if (e.button === 0)
-        this.unitDrawOptions[i].key = !this.unitDrawOptions[i].key;
-      else if (e.button === 2 && this.unitDrawOptions[i].key)
-        this.unitDrawOptions[i].color = (this.unitDrawOptions[i].color + 1) % getColor.length;
+      if (e.button === 0) opt.key = !opt.key;
+      else if (e.button === 2 && opt.key) opt.color = (opt.color + 1) % getColor.length;
     }
-    if (rectContains(unitToggleRect, coord))
-      if (e.button === 0)
-        this.unitDrawOptions[i].pinned = !this.unitDrawOptions[i].pinned;
+    if (rectContains(unitToggleRect, coord)) {
+      if (e.button === 0) opt.pinned = !opt.pinned;
+      else if (e.button === 2 && opt.pinned) opt.color = (opt.color + 1) % getColor.length;
+    }
     coord.y -= unitbars.regular_rect.h;
   }
 }
@@ -297,7 +297,7 @@ PlayerCanvas.prototype.drawToggle = function(ctx, x, y, unit_no, playing, vel, v
   ctx.translate(x+1, y+1);
   ctx.fillStyle = (pinned ? UNIT_LIST_SEL_BGCOLOR : UNIT_LIST_BGCOLOR);
   ctx.fillRect(1, 1, 13, 9);
-  ctx.fillStyle = this.getUnitColor(unit_no).key(playing, vel, vol);
+  ctx.fillStyle = this.getUnitColor(unit_no).shadow(playing, vel, vol);
   ctx.fillRect(0, 0, 13, 9);
   ctx.fillStyle = this.getUnitColor(unit_no).note(playing, vel, vol);
   ctx.fillRect(1, 1, 12, 8);

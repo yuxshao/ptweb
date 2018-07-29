@@ -98,6 +98,7 @@ export let getColorGen = (function (default_vel, default_vol) {
   for (let i = 0; i < colors.length; ++i) {
     getColor[i] = {
       "note":      noteColorGenSolid(colors[i].note),
+      "shadow":    noteColorGenSolid(colors[i].key),
       "highlight": noteColorGen     (colors[i].note),
       "key":       noteColorGen     (colors[i].key),
     };
