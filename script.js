@@ -34,6 +34,7 @@ const stopBtn         = document.querySelector(".stopButton");
 const volumeSlider    = document.querySelector("#volumeSlider");
 const volumeIndicator = document.querySelector("#volumeIndicator");
 const zoomSelect      = document.querySelector("#zoomSelect");
+const keyZoomSelect   = document.querySelector("#keyZoomSelect");
 const snapSelect      = document.querySelector("#snapSelect");
 const scaleSelect     = document.querySelector("#scaleSelect");
 const [pxtnName, pxtnTitle, pxtnComment] = [
@@ -115,6 +116,11 @@ const updateZoom = (_e) => myPlayerCanvas.setZoom(zoomSelect.value);
 zoomSelect.addEventListener("input", updateZoom);
 zoomSelect.addEventListener("change", updateZoom);
 updateZoom(null);
+
+const updateKeyZoom = (_e) => myPlayerCanvas.setKeyZoom(keyZoomSelect.value);
+keyZoomSelect.addEventListener("input", updateKeyZoom);
+keyZoomSelect.addEventListener("change", updateKeyZoom);
+updateKeyZoom(null);
 
 const updateSnap = (_e) => myPlayerCanvas.setSnap(snapSelect.value);
 snapSelect.addEventListener("input", updateSnap);

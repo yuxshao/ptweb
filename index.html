@@ -29,20 +29,25 @@
   <span id="volumeIndicator">100%</span>
 </div>
 <div id="controlBox">
-  zoom: 
+  <span title="measure width zoom">zoom-x</span>: 
   <select id="zoomSelect">
     <option value="0.5">1/2</option>
     <option value="1">1</option>
     <option value="2">2</option>
     <option value="4">4</option>
   </select>
-  snap: 
+  <span title="key height in keyboard view">zoom-y</span>:
+  <select id="keyZoomSelect">
+    <option value="small">1/2</option>
+    <option value="big">1</option>
+  </select>
+  <span title="playhead scroll snap">snap</span>:
   <select id="snapSelect">
-    <option value="meas">measure</option>
+    <option value="meas">meas</option>
     <option value="beat">beat</option>
     <option value="none">none</option>
   </select>
-  2x: <input type="checkbox" id="scaleSelect" />
+  <span title="pixel zoom">2x</span>: <input type="checkbox" id="scaleSelect" />
   <button id="commentsToggle">info</button>
 </div>
 

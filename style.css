@@ -186,3 +186,7 @@ footer {
   padding: 0px;
   margin: 5px;
 }
+
+#controlBox > span[title] {
+  text-decoration:dotted underline;
+}

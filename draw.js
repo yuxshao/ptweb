@@ -15,10 +15,12 @@ const DEFAULT_VELOCITY = 104;
 const DEFAULT_KEY      = 0x6000;
 const BASE_MEASURE_WIDTH = 192;
 
-const KEYBOARD_NOTE_NUM = 88;
+const KEYBOARD_NOTE_NUM   = 88;
 const KEYBOARD_BASE_SHIFT = 39;
-const KEYBOARD_KEY_HEIGHT = 8;
-const KEYBOARD_NOTE_HEIGHT = 5;
+const KEYBOARD_KEY_HEIGHT_SMALL  = 8;
+const KEYBOARD_NOTE_HEIGHT_SMALL = 5;
+const KEYBOARD_KEY_HEIGHT_BIG    = 16;
+const KEYBOARD_NOTE_HEIGHT_BIG   = 8;
 
 const numbers_green = new Image(80, 8);
 const flags = new Image(81, 16);
@@ -92,6 +94,7 @@ export let PlayerCanvas = function (canvas, canvasFixed, canvasMenu) {
 
   this.setData([""], [], DEFAULT_MASTER);
   this.setZoom(1);
+  this.setKeyZoom('small');
   this.setSnap('meas');
   this.setScale(1);
   this.addMenuListeners();
@@ -142,8 +145,23 @@ PlayerCanvas.prototype.addMenuListeners = function() {
   this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
   this.canvasFixed.addEventListener('contextmenu', (e) => e.preventDefault());
 }
+
 PlayerCanvas.prototype.setZoom = function (zoom) {
   this.measureWidth = BASE_MEASURE_WIDTH * zoom;
+}
+
+PlayerCanvas.prototype.setKeyZoom = function (zoom) {
+  switch (zoom) {
+    case "small":
+      this.keyboardKeyHeight  = KEYBOARD_KEY_HEIGHT_SMALL;
+      this.keyboardNoteHeight = KEYBOARD_NOTE_HEIGHT_SMALL;
+      break;
+    case "big": default:
+      this.keyboardKeyHeight  = KEYBOARD_KEY_HEIGHT_BIG;
+      this.keyboardNoteHeight = KEYBOARD_NOTE_HEIGHT_BIG;
+      break;
+  }
+  this.updateCanvasDims();
 }
 
 PlayerCanvas.prototype.setSnap  = function (snap) { this.snap = snap; };
@@ -194,7 +212,7 @@ PlayerCanvas.prototype.updateCanvasDims = function () {
   let height = 0;
   switch (this.view) {
     case "keyboard":
-      height = this.unitOffsetY + KEYBOARD_KEY_HEIGHT * KEYBOARD_NOTE_NUM;
+      height = this.unitOffsetY + this.keyboardKeyHeight * KEYBOARD_NOTE_NUM;
       break;
     case "unit":
     default:
@@ -384,24 +402,24 @@ PlayerCanvas.prototype.drawKeyboardNote = function(ctx, started, playing, highli
     unit_no, key, start, end, current) {
   let clockPerPx = this.clockPerPx();
 
-  let offset = KEYBOARD_KEY_HEIGHT * (KEYBOARD_BASE_SHIFT + (DEFAULT_KEY - key) / 256);
-  let y = offset + KEYBOARD_KEY_HEIGHT/2 - Math.floor(KEYBOARD_NOTE_HEIGHT)/2;
+  let offset = this.keyboardKeyHeight * (KEYBOARD_BASE_SHIFT + (DEFAULT_KEY - key) / 256);
+  let y = offset + this.keyboardKeyHeight/2 - Math.floor(this.keyboardNoteHeight)/2;
   let w = (end - start) / clockPerPx;
   let vel = this.velocityAt(unit_no, current), vol = this.volumeAt(unit_no, current);
   ctx.fillStyle = getColor[unit_no % getColor.length].key(playing, vel, vol);
-  ctx.fillRect(start / clockPerPx, y, (end - start) / clockPerPx, KEYBOARD_NOTE_HEIGHT);
+  ctx.fillRect(start / clockPerPx, y, (end - start) / clockPerPx, this.keyboardNoteHeight);
   if (highlight) {
     ctx.fillStyle = getColor[unit_no % getColor.length].note(playing, vel, vol);
-    ctx.fillRect(start / clockPerPx, y, 2, KEYBOARD_NOTE_HEIGHT);
+    ctx.fillRect(start / clockPerPx, y, 2, this.keyboardNoteHeight);
   }
 }
 
 let pianoPattern = [false, true, false, true, false, false, true, false, true, false, false, true];
 PlayerCanvas.prototype.drawKeyboardBack = function(ctx, canvasOffsetX, dimensions) {
-  for (let i = 0; i < dimensions.h / KEYBOARD_KEY_HEIGHT; ++i) {
+  for (let i = 0; i < dimensions.h / this.keyboardKeyHeight; ++i) {
     let ind = ((i - KEYBOARD_BASE_SHIFT) % pianoPattern.length + pianoPattern.length) % pianoPattern.length;
     ctx.fillStyle = (pianoPattern[ind] ? "#202020" : "#404040");
-    ctx.fillRect(canvasOffsetX, i * KEYBOARD_KEY_HEIGHT + 1, dimensions.w, KEYBOARD_KEY_HEIGHT-1);
+    ctx.fillRect(canvasOffsetX, i * this.keyboardKeyHeight + 1, dimensions.w, this.keyboardKeyHeight-1);
   }
 }
 
@@ -587,6 +605,8 @@ PlayerCanvas.prototype.needToDraw = function () {
     view:   this.view,
     snap:   this.snap,
     zoom:   this.measureWidth,
+    key_height:  this.keyboardKeyHeight,
+    note_height: this.keyboardNoteHeight
   }
   let need = false;
   for (let prop in now)
