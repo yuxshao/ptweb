@@ -188,7 +188,7 @@ footer {
 
 #playerContainer {
   position:relative;
-  overflow-x: hidden;
+  overflow: hidden;
   display:inline-block;
   padding: 0px;
   margin: 5px;
