@@ -11,18 +11,18 @@ let DEFAULT_VOLUME;
 let colors = [
   { "note": ["#F08000", "#FFFF00", "#FFFF80"], // orange 0
     "key" : ["#C06000", "#F08000", "#FFC400"] },
-  { "note": ["#6979FF", "#B4C9FF", "#D9E8FF"], // indigo 3
-    "key" : ["#483EFF", "#6979FF", "#B4C9FF"] },
-  { "note": ["#5BB308", "#96FF33", "#DAFFB8"], // yellow-green 6
-    "key" : ["#479100", "#5BB308", "#96FF33"] },
-  { "note": ["#FC32CB", "#FFA9FF", "#FFE0FF"], // magenta 2
-    "key" : ["#DF0083", "#FF4CD4", "#FFA9FF"] },
-  { "note": ["#00C060", "#31FF98", "#C5FFE2"], // blue-green 5
-    "key" : ["#008041", "#00C060", "#00E874"] },
   { "note": ["#FF775D", "#FFC39C", "#FFEDD9"], // red 1
     "key" : ["#D82E2E", "#FF775D", "#FFC39C"] },
+  { "note": ["#FC32CB", "#FFA9FF", "#FFE0FF"], // magenta 2
+    "key" : ["#DF0083", "#FF4CD4", "#FFA9FF"] },
+  { "note": ["#6979FF", "#B4C9FF", "#D9E8FF"], // indigo 3
+    "key" : ["#483EFF", "#6979FF", "#B4C9FF"] },
   { "note": ["#00BDFF", "#CFE8FF", "#90FFFF"], // cyan 4
     "key" : ["#0093C6", "#00BDFF", "#CFE8FF"] },
+  { "note": ["#00C060", "#31FF98", "#C5FFE2"], // blue-green 5
+    "key" : ["#008041", "#00C060", "#00E874"] },
+  { "note": ["#5BB308", "#96FF33", "#DAFFB8"], // yellow-green 6
+    "key" : ["#479100", "#5BB308", "#96FF33"] },
 ];
 
 function colToStr(c) {

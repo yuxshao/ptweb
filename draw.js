@@ -98,7 +98,7 @@ export let PlayerCanvas = function (canvas, canvasFixed, canvasMenu) {
   this.setSnap('meas');
   this.setScale(1);
   this.addMenuListeners();
-  this.view = "keyboard";
+  this.view = "unit";
 }
 
 PlayerCanvas.prototype.toLocalCoords = function (point) {
@@ -128,22 +128,28 @@ PlayerCanvas.prototype.addMenuListeners = function() {
 
   // toggle
   this.canvasMenu.addEventListener('mousedown', (e) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 && e.button !== 2) return; // not left nor right
     let coord = this.toLocalCoords({x:e.offsetX, y:e.offsetY});
     coord.y -= this.unitOffsetY;
     coord.x -= unitbars.side_rect.w;
     for (let i = 0; i < this.units.length; ++i) {
-      if (rectContains(keyToggleRect, coord))
-        this.drawKey[i] = !this.drawKey[i];
+      if (rectContains(keyToggleRect, coord)) {
+        if (e.button === 0)
+          this.unitDrawOptions[i].key = !this.unitDrawOptions[i].key;
+        else if (e.button === 2 && this.unitDrawOptions[i].key)
+          this.unitDrawOptions[i].color = (this.unitDrawOptions[i].color + 1) % getColor.length;
+      }
       if (rectContains(unitToggleRect, coord))
-        this.drawUnit[i] = !this.drawUnit[i];
+        if (e.button === 0)
+          this.unitDrawOptions[i].unit = !this.unitDrawOptions[i].unit;
       coord.y -= unitbars.regular_rect.h;
     }
     this.updateCanvasDims();
+    this.forceRedraw();
   });
 
-  this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-  this.canvasFixed.addEventListener('contextmenu', (e) => e.preventDefault());
+  for (let c of [this.canvas, this.canvasFixed, this.canvasMenu])
+    c.addEventListener('contextmenu', (e) => e.preventDefault());
 }
 
 PlayerCanvas.prototype.setZoom = function (zoom) {
@@ -180,16 +186,18 @@ PlayerCanvas.prototype.setData = function(units, evels, master) {
   this.vels  = new Array(units.length);
   this.vols  = new Array(units.length);
   this.keys  = new Array(units.length);
-  this.drawKey  = new Array(units.length);
-  this.drawUnit = new Array(units.length);
+  this.unitDrawOptions = new Array(units.length);
   let that = this;
   for (let i = 0; i < units.length; ++i) {
     this.notes[i] = new SortedList((x) => evels[x].clock);
     this.vels [i] = new SortedList((x) => evels[x].clock);
     this.vols [i] = new SortedList((x) => evels[x].clock);
     this.keys [i] = new SortedList((x) => evels[x].clock);
-    this.drawKey [i] = true;
-    this.drawUnit[i] = false;
+    this.unitDrawOptions[i] = {
+      'color': (i * 3) % getColor.length,
+      'key': true,
+      'unit': false
+    }
   }
 
   for (let i = 0; i < evels.length; ++i) {
@@ -271,10 +279,10 @@ PlayerCanvas.prototype.drawUnitList = function (ctx, height) {
   for (i = 0; i < this.units.length; ++i) {
     drawImageRect(ctx, unitbars, unitbars.regular_rect, 0, 0);
 
-    if (this.drawKey[i])
-      this.drawToggle(ctx, 3, 2,  getColor[i % getColor.length]);
-    if (this.drawUnit[i])
-      this.drawToggle(ctx, 21, 2, getColor[i % getColor.length]);
+    if (this.unitDrawOptions[i].key)
+      this.drawToggle(ctx, 3, 2,  this.getUnitColor(i));
+    if (this.unitDrawOptions[i].unit)
+      this.drawToggle(ctx, 21, 2, this.getUnitColor(i));
 
     ctx.fillText(this.units[i], UNIT_TEXT_PADDING, unitbars.regular_rect.h / 2);
     ctx.translate(0, unitbars.regular_rect.h);
@@ -401,10 +409,10 @@ PlayerCanvas.prototype.drawKeyboardNote = function(ctx, started, playing, highli
   let y = offset + this.keyboardKeyHeight/2 - Math.floor(this.keyboardNoteHeight)/2;
   let w = (end - start) / clockPerPx;
   let vel = this.velocityAt(unit_no, current), vol = this.volumeAt(unit_no, current);
-  ctx.fillStyle = getColor[unit_no % getColor.length].key(playing, vel, vol);
+  ctx.fillStyle = this.getUnitColor(unit_no).key(playing, vel, vol);
   ctx.fillRect(start / clockPerPx, y, (end - start) / clockPerPx, this.keyboardNoteHeight);
   if (highlight) {
-    ctx.fillStyle = getColor[unit_no % getColor.length].note(playing, vel, vol);
+    ctx.fillStyle = this.getUnitColor(unit_no).note(playing, vel, vol);
     ctx.fillRect(start / clockPerPx, y, 2, this.keyboardNoteHeight);
   }
 }
@@ -423,7 +431,7 @@ function drawKeyboardNoteForDeferredQueue(data) {
     data.unit_no, data.currentKey, data.noteStart, data.noteEnd, data.currClock);
 }
 
-PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_nos, canvasOffsetX, currBeat, dimensions) {
+PlayerCanvas.prototype.drawKeyboard = function(ctx, canvasOffsetX, currBeat, dimensions) {
   let currClock = currBeat * this.master.beatClock;
   let clockPerPx = this.clockPerPx();
 
@@ -432,7 +440,7 @@ PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_nos, canvasOffsetX, cur
   let rightBound = clockPerPx * (canvasOffsetX + dimensions.w);
 
   // an array of objects that can consume events in order and draw notes in response
-  let unit_states = new Array(unit_nos.length);
+  let unit_states = new Array(this.units.length);
   // set of evel indices that initiate a note crossing leftBound
   let first_presses = new SortedList((x) => x);
   // drawQueue is used so enforce notes starting earlier are drawn earlier.
@@ -440,7 +448,7 @@ PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_nos, canvasOffsetX, cur
 
   for (let unit_no = 0; unit_no < unit_states.length; ++unit_no) {
     unit_states[unit_no] = null;
-    if (unit_nos[unit_no] === false || this.notes[unit_no].length === 0)
+    if (!this.unitDrawOptions[unit_no].key || this.notes[unit_no].length === 0)
       continue;
 
     let notes = this.notes[unit_no];
@@ -520,6 +528,10 @@ PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_nos, canvasOffsetX, cur
   for (let state of unit_states) if (state !== null) state.conclude();
 }
 
+PlayerCanvas.prototype.getUnitColor = function(unit_no) {
+  return getColor[this.unitDrawOptions[unit_no].color];
+}
+
 PlayerCanvas.prototype.drawUnitRows = function(ctx, canvasOffsetX, currBeat, dimensions) {
   let currClock = currBeat * this.master.beatClock;
   let clockPerPx = this.clockPerPx();
@@ -540,7 +552,7 @@ PlayerCanvas.prototype.drawUnitRows = function(ctx, canvasOffsetX, currBeat, dim
     for (let i = leftIndex; i < rightIndex; ++i) {
       let e = this.evels[notes[i]];
       let playing = (this.isStarted() && e.clock <= currClock && e.clock + e.value > currClock);
-      ctx.fillStyle = getColor[unit_no % getColor.length].note(playing,
+      ctx.fillStyle = this.getUnitColor(unit_no).note(playing,
         this.velocityAt(e.unit_no, currClock), this.volumeAt(e.unit_no, currClock));
       drawUnitNote(ctx, e.clock / clockPerPx, unit_no * 16 + 8, e.value / clockPerPx);
     }
@@ -573,7 +585,7 @@ PlayerCanvas.prototype.drawTimeline = function (ctx, currBeat, dimensions) {
     switch (this.view) {
       case "keyboard":
         this.drawKeyboardBack(ctx, canvasOffsetX, dimensions);
-        this.drawKeyboard(ctx, this.drawKey, canvasOffsetX, currBeat, dimensions);
+        this.drawKeyboard(ctx, canvasOffsetX, currBeat, dimensions);
         break;
       case "unit":
       default:
