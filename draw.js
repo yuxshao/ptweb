@@ -155,7 +155,7 @@ PlayerCanvas.prototype.setScale = function (scale) {
 PlayerCanvas.prototype.setData = function(units, evels, master) {
   this.master = master;
   this.units = units;
-  this.evels = evels;
+  this.evels = new SortedList((x) => x.clock);
 
   let totalClock = master.beatClock * master.beatNum * master.measNum;
   this.notes = new Array(units.length);
@@ -176,6 +176,7 @@ PlayerCanvas.prototype.setData = function(units, evels, master) {
 
   for (let i = 0; i < evels.length; ++i) {
     let e = evels[i];
+    this.evels.push(e);
     switch (e.kind) {
       case "ON":       this.notes[e.unit_no].push(i); break;
       case "VELOCITY": this.vels [e.unit_no].push(i); break;
@@ -419,29 +420,32 @@ PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_nos, canvasOffsetX, cur
 
   // an array of objects that can consume events in order and draw notes in response
   let unit_states = new Array(unit_nos.length);
-  let minStartIdx = Infinity;
-  // drawQueue is used so enforce notes starting earlier to be drawn earlier.
+  // set of evel indices that initiate a note crossing leftBound
+  let first_presses = new SortedList((x) => x);
+  // drawQueue is used so enforce notes starting earlier are drawn earlier.
   let drawQueue = new DeferredQueue(drawKeyboardNoteForDeferredQueue);
+
   for (let unit_no = 0; unit_no < unit_states.length; ++unit_no) {
     unit_states[unit_no] = null;
-    if (unit_nos[unit_no] === false || this.notes[unit_no].length === 0) continue;
-    let notes = this.notes[unit_no];
-    let startIdx = notes[Math.max(notes.lastPositionOf(leftBound), 0)];
-    let lastQueueId = null;
-    if (minStartIdx > startIdx) minStartIdx = startIdx;
+    if (unit_nos[unit_no] === false || this.notes[unit_no].length === 0)
+      continue;
 
-    let currentKey = this.keyAt(unit_no, this.evels[startIdx].clock);
+    let notes = this.notes[unit_no];
+    let lastQueueId = null;
+
+    let currentKey = this.keyAt(unit_no, leftBound);
     let noteStart = Infinity, noteEnd = Infinity;
     let playing = null;
     let highlight = null;
+
     // schedules a note to be drawn as soon as all starting before it are drawn
     let drawNote = (end) =>
       drawQueue.fill(lastQueueId, {
         'obj': this, 'ctx': ctx, 'playing': playing, 'highlight': highlight, 'unit_no': unit_no,
         'currentKey': currentKey, 'noteStart': noteStart, 'noteEnd': end, 'currClock': currClock
       });
+
     unit_states[unit_no] = {
-      'startIdx': startIdx,
       'consume': (e) => {
         if (e.clock >= noteEnd) { // if at end of note, draw just-finished note
           drawNote(noteEnd);
@@ -475,17 +479,31 @@ PlayerCanvas.prototype.drawKeyboard = function(ctx, unit_nos, canvasOffsetX, cur
       // draw the (possible) note continuation at end
       'conclude': () => { if (rightBound >= noteStart) drawNote(noteEnd); }
     };
+
+    let start_id = notes.firstPositionOf(leftBound)-1;
+    if (start_id !== -1) {
+      let note = this.evels[notes[start_id]];
+      if (note.clock + note.value > leftBound)
+        first_presses.insert(notes[start_id]);
+    }
   }
 
-  // TODO: consider some way to start later...
-  // e.g. only consider the startIdxes, then start at the leftBound
-  // and ignore startIdx if the note already ended before leftBound
-  for (let i = minStartIdx; i < this.evels.length && this.evels[i].clock < rightBound; ++i) {
+  // activate all the possible notes that cross the left bound
+  for (let i of first_presses) {
     let e = this.evels[i];
-    if (unit_states[e.unit_no] !== null && unit_states[e.unit_no].startIdx <= i)
+    unit_states[e.unit_no].consume(e);
+  }
+
+  // process all evels in range
+  for (let i = this.evels.firstPositionOf(leftBound);
+       i < this.evels.length && this.evels[i].clock < rightBound;
+       ++i) {
+    let e = this.evels[i];
+    if (unit_states[e.unit_no] !== null)
       unit_states[e.unit_no].consume(e);
   }
 
+  // possibly draw continuations
   for (let state of unit_states) if (state !== null) state.conclude();
 }
 
