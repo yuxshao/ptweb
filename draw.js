@@ -247,11 +247,13 @@ PlayerCanvas.prototype.velocityAt = function (unit_no, clock) {
   return this.evels[this.vels[unit_no][i]].value;
 }
 
-PlayerCanvas.prototype.isPlaying = function (unit_no, clock) {
+// how many clock ticks into a note you currently are (-1 if not)
+PlayerCanvas.prototype.playingOffset = function (unit_no, clock) {
   let i = this.notes[unit_no].lastPositionOf(clock);
-  if (i == -1) return false;
+  if (i == -1) return -1;
   let e = this.evels[this.notes[unit_no][i]];
-  return e.clock + e.value > clock;
+  if (e.clock + e.value <= clock) return -1;
+  return clock - e.clock;
 }
 
 PlayerCanvas.prototype.volumeAt = function (unit_no, clock) {
@@ -298,9 +300,11 @@ PlayerCanvas.prototype.drawUnitList = function (ctx, height, currBeat) {
   for (i = 0; i < this.units.length; ++i) {
     drawImageRect(ctx, unitbars, unitbars.regular_rect, 0, 0);
 
-    let vel = this.velocityAt(i, currClock);
+    let playingOffset = this.playingOffset(i, currClock);
+    let offsetBoost = Math.max(0, (128 - DEFAULT_VELOCITY) * 2 - playingOffset/4);
+    let vel = Math.min(128, this.velocityAt(i, currClock) + offsetBoost);
     let vol = this.volumeAt(i, currClock);
-    let is_playing = this.isPlaying(i, currClock);
+    let is_playing = playingOffset !== -1;
     if (this.unitDrawOptions[i].key)
       this.drawToggle(ctx, 3, 2, i, is_playing, vel, vol);
     if (this.unitDrawOptions[i].unit)
