@@ -209,16 +209,11 @@ PlayerCanvas.prototype.setData = function(units, evels, master) {
 }
 
 PlayerCanvas.prototype.updateCanvasDims = function () {
-  let height = 0;
-  switch (this.view) {
-    case "keyboard":
-      height = this.unitOffsetY + this.keyboardKeyHeight * KEYBOARD_NOTE_NUM;
-      break;
-    case "unit":
-    default:
-      let l = Math.ceil(this.units.length/10) * 10;
-      height = unitbars.regular_rect.h * l + unitbars.menu_rect_unit.h + unitbars.tab_rect.h;
-      break;
+  let unitRowNum = Math.ceil(this.units.length/10) * 10;
+  let height = unitbars.regular_rect.h * unitRowNum + unitbars.menu_rect_unit.h + unitbars.tab_rect.h;
+  if (this.view === 'keyboard') {
+    let keyHeight = this.unitOffsetY + this.keyboardKeyHeight * KEYBOARD_NOTE_NUM;
+    if (keyHeight > height) height = keyHeight;
   }
   this.canvas.height = height * this.scale;
   this.canvasFixed.height = Math.min((this.unitOffsetY + 1) * this.scale, this.canvas.height);
