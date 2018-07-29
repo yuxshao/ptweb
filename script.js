@@ -122,6 +122,11 @@ keyZoomSelect.addEventListener("input", updateKeyZoom);
 keyZoomSelect.addEventListener("change", updateKeyZoom);
 updateKeyZoom(null);
 
+const updateDark = (_e) => myPlayerCanvas.setDark(darkSelect.checked);
+darkSelect.addEventListener("input", updateDark);
+darkSelect.addEventListener("change", updateDark);
+updateDark(null);
+
 const updateSnap = (_e) => myPlayerCanvas.setSnap(snapSelect.value);
 snapSelect.addEventListener("input", updateSnap);
 snapSelect.addEventListener("change", updateSnap);

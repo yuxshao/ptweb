@@ -95,6 +95,7 @@ export let PlayerCanvas = function (canvas, canvasFixed, canvasMenu) {
   this.setZoom(1);
   this.setKeyZoom('small');
   this.setSnap('meas');
+  this.setDark(false);
   this.setScale(1);
   this.addMenuListeners();
   this.view = "unit";
@@ -182,7 +183,9 @@ PlayerCanvas.prototype.setKeyZoom = function (zoom) {
   this.updateCanvasDims();
 }
 
-PlayerCanvas.prototype.setSnap  = function (snap) { this.snap = snap; };
+PlayerCanvas.prototype.setSnap = function (snap) { this.snap = snap; };
+PlayerCanvas.prototype.setDark = function (dark) { this.dark = dark; };
+
 PlayerCanvas.prototype.setScale = function (scale) {
   this.scale = scale;
   this.updateCanvasDims();
@@ -368,7 +371,8 @@ PlayerCanvas.prototype.drawMeasureLines = function(ctx, canvasOffsetX, dimension
 }
 
 PlayerCanvas.prototype.drawRulers = function(ctx, canvasOffsetX, dimensions) {
-  this.drawBeatLines(ctx, canvasOffsetX, dimensions);
+  if (!(this.dark && this.view === 'keyboard'))
+    this.drawBeatLines(ctx, canvasOffsetX, dimensions);
   this.drawMeasureLines(ctx, canvasOffsetX, dimensions);
 }
 
@@ -455,11 +459,18 @@ PlayerCanvas.prototype.getSongPositionShift = function(currBeat, dim_w) {
 }
 
 let pianoPattern = [false, true, false, true, false, false, true, false, true, false, false, true];
+let WHITE_KEY_COLOR = "#404040";
+let BLACK_KEY_COLOR = "#202020";
 PlayerCanvas.prototype.drawKeyboardBack = function(ctx, canvasOffsetX, dimensions) {
   for (let i = 0; i < dimensions.h / this.keyboardKeyHeight; ++i) {
     let ind = ((i - KEYBOARD_BASE_SHIFT) % pianoPattern.length + pianoPattern.length) % pianoPattern.length;
-    ctx.fillStyle = (pianoPattern[ind] ? "#202020" : "#404040");
-    ctx.fillRect(canvasOffsetX, i * this.keyboardKeyHeight + 1, dimensions.w, this.keyboardKeyHeight-1);
+    let height = this.keyboardKeyHeight - 1;
+    if (this.dark) {
+      ctx.fillStyle = BGCOLOR;
+      height += i%2;
+    }
+    else ctx.fillStyle = (pianoPattern[ind] ? BLACK_KEY_COLOR : WHITE_KEY_COLOR);
+    ctx.fillRect(canvasOffsetX, i * this.keyboardKeyHeight + 1, dimensions.w, height);
   }
 }
 
@@ -675,9 +686,8 @@ PlayerCanvas.prototype.needToDraw = function () {
     time:   this.getTime(), // canvasOffsetX is not enough - playhead & highlighted notes change
     width:  this.canvas.width,
     height: this.canvas.height,
-    scale:  this.scale,
-    view:   this.view,
-    snap:   this.snap,
+    scale:  this.scale, view: this.view,
+    snap:   this.snap,  snap: this.dark,
     zoom:   this.measureWidth,
     key_height:  this.keyboardKeyHeight,
     note_height: this.keyboardNoteHeight
@@ -751,6 +761,7 @@ PlayerCanvas.prototype.draw = function () {
     this.withSongPositionShift(ctx, currBeat, dimensions.w, (canvasOffsetX) => {
       this.drawMeasureMarkers(ctx, canvasOffsetX, dimensions);
       ctx.translate(0, topShift);
+      // TODO: clip pinned units with text too long
       this.drawUnitRows(ctx, canvasOffsetX, currBeat, dimensions, true);
       ctx.translate(0, -topShift);
       this.drawPlayhead(ctx, currBeat, dimensions);
