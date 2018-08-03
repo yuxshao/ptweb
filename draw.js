@@ -82,10 +82,11 @@ function middleSnap(x) { return Math.floor(x) + 0.5; }
 
 let getColor = getColorGen(DEFAULT_VELOCITY, DEFAULT_VOLUME);
 
-export let PlayerCanvas = function (canvas, canvasFixed, canvasMenu) {
-  this.canvas      = canvas;
-  this.canvasFixed = canvasFixed;
-  this.canvasMenu  = canvasMenu;
+export let PlayerCanvas = function (canvas, canvasFixed, canvasMenu, canvasFixedMenu) {
+  this.canvas          = canvas;
+  this.canvasFixed     = canvasFixed;
+  this.canvasMenu      = canvasMenu;
+  this.canvasFixedMenu = canvasFixedMenu;
 
   this.lastDrawState = {}; // for avoiding redrawing the same thing
   this.getTime = () => 0;
@@ -97,7 +98,7 @@ export let PlayerCanvas = function (canvas, canvasFixed, canvasMenu) {
   this.setSnap('meas');
   this.setDark(false);
   this.setScale(1);
-  this.addMenuListeners();
+  this.addListeners();
   this.view = "unit";
 }
 
@@ -116,16 +117,24 @@ let keyTabRect  = { x:84, y:0, w:61, h:15 };
 let keyToggleRect  = { x:1,  y:1, w:18, h:14 };
 let unitToggleRect = { x:19, y:1, w:18, h:14 };
 
-PlayerCanvas.prototype.addMenuListeners = function() {
-  this.canvasFixed.addEventListener('mousedown', (e) => {
+PlayerCanvas.prototype.addListeners = function() {
+  window.addEventListener('resize', () => this.updateCanvasDims(), false);
+  this.updateCanvasDims();
+
+  // switch tab
+  this.canvasFixedMenu.addEventListener('mousedown', (e) => {
     let coord = this.toLocalCoords({x:e.offsetX, y:e.offsetY});
-    // switch tab
     if (rectContains(unitTabRect, coord))
       this.view = 'unit';
     if (rectContains(keyTabRect, coord))
       this.view = 'keyboard';
+    this.updateCanvasDims();
+    this.forceRedraw();
+  });
 
-    // toggle on pinned
+  // toggle on pinned
+  this.canvasFixedMenu.addEventListener('mousedown', (e) => {
+    let coord = this.toLocalCoords({x:e.offsetX, y:e.offsetY});
     coord.y -= unitbars.menu_rect_key.h + unitbars.tab_rect.h;
     coord.x -= unitbars.side_rect.w;
     this.handleToggle(e, coord, true);
@@ -142,7 +151,7 @@ PlayerCanvas.prototype.addMenuListeners = function() {
   // toggle on unpinned
   this.canvasMenu.addEventListener('mousedown', (e) => {
     let coord = this.toLocalCoords({x:e.offsetX, y:e.offsetY});
-    coord.y -= this.unitOffsetY;
+    // coord.y -= this.unitOffsetY;
     coord.x -= unitbars.side_rect.w;
     this.handleToggle(e, coord, false);
     this.updateCanvasDims();
@@ -256,19 +265,27 @@ PlayerCanvas.prototype.updateCanvasDims = function () {
   let botUnitRowNum = Math.ceil(this.units.length/10)*10 - topUnitRowNum;
   this.unitOffsetY += unitbars.regular_rect.h * topUnitRowNum;
 
-  let unitHeight = unitbars.regular_rect.h * botUnitRowNum + this.unitOffsetY;
+  let unitHeight = unitbars.regular_rect.h * botUnitRowNum;
   switch (this.view) {
     case 'keyboard':
-      let keyHeight = this.unitOffsetY + this.keyboardKeyHeight * KEYBOARD_NOTE_NUM;
+      let keyHeight = this.keyboardKeyHeight * KEYBOARD_NOTE_NUM;
       height = Math.max(keyHeight, unitHeight);
       break;
     case 'unit': default: height = unitHeight; break;
   }
 
-  this.canvas.height = height * this.scale;
-  this.canvasFixed.height = Math.min((this.unitOffsetY + 1) * this.scale, this.canvas.height);
-  this.canvasMenu.width  = MENU_WIDTH * this.scale;
-  this.canvasMenu.height = this.canvas.height;
+  let parentRect      = this.canvas.parentNode.getBoundingClientRect();
+  let fixedParentRect = this.canvasFixed.parentNode.getBoundingClientRect();
+  this.canvas.height      = Math.max(window.innerHeight, height * this.scale);
+  this.canvasFixed.height = Math.min(this.unitOffsetY * this.scale, this.canvas.height);
+  this.canvasMenu.height      = this.canvas.height;
+  this.canvasFixedMenu.height = this.canvasFixed.height;
+
+  this.canvasMenu.width = MENU_WIDTH * this.scale;
+  this.canvasFixedMenu.width = this.canvasMenu.width;
+  this.canvas.width      = parentRect.width      - this.canvasMenu.width;
+  this.canvasFixed.width = fixedParentRect.width - this.canvasFixedMenu.width;
+
   this.forceRedraw();
 }
 
@@ -329,6 +346,7 @@ PlayerCanvas.prototype.drawUnitList = function (ctx, height, currBeat, pinned) {
   ctx.save() // row translate
   ctx.translate(unitbars.side_rect.w, 0);
   let numRenderedRows = 0;
+  ctx.font = "8px sans-serif";
   for (i = 0; i < this.units.length; ++i) {
     if (pinned !== null && this.unitDrawOptions[i].pinned !== pinned) continue;
     numRenderedRows++;
@@ -362,11 +380,10 @@ PlayerCanvas.prototype.drawUnitList = function (ctx, height, currBeat, pinned) {
 const BEATLINE_OFFSET = 25;
 PlayerCanvas.prototype.drawBeatLines = function(ctx, canvasOffsetX, dimensions) {
   ctx.fillStyle = "#808080";
-  let h = Math.max(0, dimensions.h - BEATLINE_OFFSET);
   let beatWidth = this.measureWidth / this.master.beatNum;
   let start = Math.floor(canvasOffsetX / beatWidth);
   for (let i = 0; i < dimensions.w / beatWidth + 1; ++i)
-    ctx.fillRect((i + start) * beatWidth, 25, 1, h);
+    ctx.fillRect((i + start) * beatWidth, 0, 1, dimensions.h);
 }
 
 PlayerCanvas.prototype.drawMeasureLines = function(ctx, canvasOffsetX, dimensions) {
@@ -385,7 +402,9 @@ PlayerCanvas.prototype.drawRulers = function(ctx, canvasOffsetX, dimensions) {
 PlayerCanvas.prototype.drawMeasureMarkers = function(ctx, canvasOffsetX, dimensions) {
   ctx.fillStyle = BGCOLOR;
   ctx.fillRect(canvasOffsetX, 0, dimensions.w, dimensions.h);
+  ctx.translate(0, BEATLINE_OFFSET);
   this.drawBeatLines(ctx, canvasOffsetX, dimensions);
+  ctx.translate(0, -BEATLINE_OFFSET);
 
   // measure markers
   let start = Math.floor(canvasOffsetX / this.measureWidth);
@@ -422,6 +441,10 @@ PlayerCanvas.prototype.drawMeasureMarkers = function(ctx, canvasOffsetX, dimensi
 
 PlayerCanvas.prototype.clockPerPx = function () {
   return this.master.beatClock * this.master.beatNum / this.measureWidth;
+}
+
+PlayerCanvas.prototype.fmctx = function () {
+  return this.canvasFixedMenu.getContext('2d');
 }
 
 PlayerCanvas.prototype.mctx = function () {
@@ -653,7 +676,6 @@ PlayerCanvas.prototype.withSongPositionShift = function (ctx, currBeat, dim_w, f
 PlayerCanvas.prototype.withWidgetTransform = function (ctx, f) {
   ctx.save();
   ctx.scale(this.scale, this.scale);
-  ctx.translate(0, 1);
 
   ctx.save();
   f();
@@ -665,7 +687,6 @@ PlayerCanvas.prototype.drawTimeline = function (ctx, currBeat, dimensions) {
   this.withSongPositionShift(ctx, currBeat, dimensions.w, (canvasOffsetX) => {
     this.drawRulers(ctx, canvasOffsetX, dimensions);
 
-    ctx.translate(0, this.unitOffsetY); // top bar offset
     switch (this.view) {
       case "keyboard":
         this.drawKeyboardBack(ctx, canvasOffsetX, dimensions);
@@ -677,7 +698,8 @@ PlayerCanvas.prototype.drawTimeline = function (ctx, currBeat, dimensions) {
         break;
     }
     ctx.translate(0, -this.unitOffsetY);
-    this.drawPlayhead(ctx, currBeat, dimensions);
+    this.drawPlayhead(ctx, currBeat, { w: dimensions.w, h: dimensions.h + this.unitOffsetY });
+    ctx.translate(0, this.unitOffsetY); // top bar offset
   });
 }
 
@@ -723,7 +745,7 @@ PlayerCanvas.prototype.draw = function () {
   if (currBeat < 0) currBeat = 0;
 
   let getDims = (canvas) => {
-    return { w: canvas.width / this.scale - MENU_WIDTH, h: canvas.height / this.scale };
+    return { w: canvas.width / this.scale, h: canvas.height / this.scale };
   }
 
   let ctx = this.ctx();
@@ -732,20 +754,16 @@ PlayerCanvas.prototype.draw = function () {
   ctx.fillStyle = BGCOLOR;
   ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
   this.withWidgetTransform(ctx, () => {
-    ctx.save();
-    ctx.translate(MENU_WIDTH, 0);
     let dimensions = getDims(this.canvas);
     this.drawTimeline(ctx, currBeat, dimensions);
-    ctx.restore();
   });
 
+  // menu
   ctx = this.mctx();
   ctx.imageSmoothingEnabled = false;
   this.withWidgetTransform(ctx, () => {
     let dimensions = getDims(this.canvasMenu);
-    ctx.translate(0, this.unitOffsetY);
     this.drawUnitList(ctx, dimensions.h, currBeat, false);
-    ctx.translate(0, -this.unitOffsetY);
   });
 
   // top
@@ -753,38 +771,40 @@ PlayerCanvas.prototype.draw = function () {
   ctx.imageSmoothingEnabled = false;
   ctx.clearRect(0, 0, this.canvasFixed.width, this.canvasFixed.height);
 
-  this.withWidgetTransform(ctx, () => {
-    let rect;
-    switch (this.view) {
-      case "keyboard":      rect = unitbars.menu_rect_key; break;
-      case "unit": default: rect = unitbars.menu_rect_unit; break;
-    }
-    let topShift = rect.h + unitbars.tab_rect.h;
+  let rect;
+  switch (this.view) {
+    case "keyboard":      rect = unitbars.menu_rect_key; break;
+    case "unit": default: rect = unitbars.menu_rect_unit; break;
+  }
+  let topShift = rect.h + unitbars.tab_rect.h;
 
-    ctx.save(); // top-left tab shift
-    ctx.translate(MENU_WIDTH, 0);
+  this.withWidgetTransform(ctx, () => {
     let dimensions = getDims(this.canvasFixed);
     this.withSongPositionShift(ctx, currBeat, dimensions.w, (canvasOffsetX) => {
       this.drawMeasureMarkers(ctx, canvasOffsetX, dimensions);
       ctx.translate(0, topShift);
-      // TODO: clip pinned units with text too long
       this.drawUnitRows(ctx, canvasOffsetX, currBeat, dimensions, true);
       ctx.translate(0, -topShift);
       this.drawPlayhead(ctx, currBeat, dimensions);
     });
-    ctx.restore();
+  });
 
+  // top menu / tabs
+  ctx = this.fmctx();
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, this.canvasFixedMenu.width, this.canvasFixedMenu.height);
+
+  this.withWidgetTransform(ctx, () => {
+    let dimensions = getDims(this.canvasFixedMenu);
     // pinned unit list
     ctx.translate(0, topShift);
     this.drawUnitList(ctx, dimensions.h, currBeat, true);
     ctx.translate(0, -topShift);
 
     // top-left tabs
+    // TODO not sure why it needs to be offset -1
     drawImageRect(ctx, unitbars, rect, 0, 0);
     drawImageRect(ctx, unitbars, unitbars.tab_rect, 0, rect.h);
-
-    ctx.fillStyle = BGCOLOR; // fill widget offset remainder
-    ctx.fillRect(0, -1, this.canvas.width, 1);
   });
 }
 
