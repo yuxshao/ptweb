@@ -159,7 +159,7 @@ PlayerCanvas.prototype.addListeners = function() {
   });
 
   // disable contextmenu
-  for (let c of [this.canvas, this.canvasFixed, this.canvasMenu])
+  for (let c of [this.canvas, this.canvasFixed, this.canvasMenu, this.canvasFixedMenu])
     c.addEventListener('contextmenu', (e) => e.preventDefault());
 }
 
