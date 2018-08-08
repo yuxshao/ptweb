@@ -346,7 +346,7 @@ PlayerCanvas.prototype.drawUnitList = function (ctx, height, currBeat, pinned) {
   ctx.save() // row translate
   ctx.translate(unitbars.side_rect.w, 0);
   let numRenderedRows = 0;
-  ctx.font = "8px sans-serif";
+  ctx.font = "11px sans-serif";
   for (i = 0; i < this.units.length; ++i) {
     if (pinned !== null && this.unitDrawOptions[i].pinned !== pinned) continue;
     numRenderedRows++;
