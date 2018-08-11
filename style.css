@@ -135,7 +135,7 @@ output > p, output > .comment {
 }
 
 #volumeBox, #controlBox {
-  display:block;
+  display:flex;
   float:left;
 }
 
@@ -146,19 +146,10 @@ output > p, output > .comment {
 
 #controlBox {
   padding:5px 10px;
-  margin:10px 0px;
   border-left: 1px solid black;
 }
-#controlBox > select {
-  margin:0px 10px 0px 5px;
-  /*border:1px solid;
-  padding:3px;*/
-}
 
-#controlBox > input {
-  display: inline-block;
-  vertical-align:middle;
-}
+#controlBox > div { margin: 5px; }
 
 footer {
   border-top:1px solid black;
@@ -186,8 +177,6 @@ body {
   position:relative;
 }
 
-#commentsToggle { margin-left: 5px; }
-
 #displayContainer {
   background:#000010;
   flex-grow:1;
@@ -199,23 +188,38 @@ body {
   min-height:100%;
 }
 
-#controls { }
+#mooBackground {
+  flex-grow:1;
+  height:100%;
+  background:url('./moo.png');
+}
+
+#controlBarContainer {
+  position:sticky;
+  display:flex;
+  bottom:0;
+}
 
 #controlBar {
   display:flex;
   align-items: center;
-  position:sticky;
   background:#4e4b61;
   border:3px solid;
   border-color:#69656d #343255 #343255 #69656d;
-  width:100%;
   color:#9d9784;
   font-weight:bold;
-  bottom:0;
+  width:100%;
 }
 
 #controlBox > span[title] {
   text-decoration:dotted underline;
+}
+
+#logoBox {
+  padding:0 10px;
+  height:92px;
+  display:flex;
+  align-items:center;
 }
 
 #controlBar input[type="checkbox"] {
@@ -225,7 +229,10 @@ body {
   -moz-appearance: none;
   width:18px;
   height:12px;
+  margin:4px;
   outline:none;
+  display: inline-block;
+  vertical-align:middle;
 }
 
 
