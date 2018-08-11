@@ -199,11 +199,15 @@ body {
   min-height:100%;
 }
 
-#controls {
-  float:left;
+#controls { }
+
+#controlBar {
+  display:flex;
+  align-items: center;
   position:sticky;
   background:#4e4b61;
-  border:2px solid #69656d; /* TODO change when 2x */
+  border:3px solid;
+  border-color:#69656d #343255 #343255 #69656d;
   width:100%;
   color:#9d9784;
   font-weight:bold;

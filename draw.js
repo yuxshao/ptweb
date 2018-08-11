@@ -505,7 +505,7 @@ PlayerCanvas.prototype.drawKeyboardBack = function(ctx, canvasOffsetX, dimension
     let height = this.keyboardKeyHeight - 1;
     if (this.dark) {
       ctx.fillStyle = BGCOLOR;
-      height += i%2;
+      height += (i+1)%2;
     }
     else ctx.fillStyle = (pianoPattern[ind] ? BLACK_KEY_COLOR : WHITE_KEY_COLOR);
     ctx.fillRect(canvasOffsetX, i * this.keyboardKeyHeight + 1, dimensions.w, height);
