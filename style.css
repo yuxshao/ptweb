@@ -217,3 +217,34 @@ body {
 #controlBox > span[title] {
   text-decoration:dotted underline;
 }
+
+#controlBar input[type="checkbox"] {
+  box-sizing:border-box;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width:18px;
+  height:12px;
+  outline:none;
+}
+
+
+#controlBar input[type="checkbox"]:not(:checked) {
+  background:#4E4B61;
+  box-shadow:
+    -0.5px -0.5px 0 0.5px #69656D,
+     0.5px  0.5px 0 0.5px #00003E,
+     0      0     0   1px #4E4B61,
+    -0.5px -0.5px 0 1.5px #00003E,
+     0.5px  0.5px 0 1.5px #69656D;
+}
+
+#controlBar input[type="checkbox"]:checked {
+  background:#00F080;
+  box-shadow:
+    -0.5px -0.5px 0 0.5px #007840,
+     0.5px  0.5px 0 0.5px #69656D,
+     0      0     0   1px #4E4B61,
+    -0.5px -0.5px 0 1.5px #00003E,
+     0.5px  0.5px 0 1.5px #69656D;
+}
