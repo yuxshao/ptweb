@@ -55,7 +55,7 @@
   <button id="commentsToggle">info</button>
 </div>
 </div>
-<div style="padding:10px 6px"><img src="./logo.png" style="display:inline-block;vertical-align:middle" alt="PxTone Web" /></div>
+<div style="padding:10px"><img src="./logo.png" style="display:inline-block;vertical-align:middle" alt="PxTone Web" /></div>
 </div>
 </div>
 
@@ -67,7 +67,7 @@
   comment:<br />
   <pre class="comment">&nbsp;</pre>
 </output>
-<footer>
+<footer style="display:none">
   <a href="./help_en.html">help</a> | <a href="https://github.com/yuxshao/ptweb">ptweb source</a> | <a href="https://github.com/petamoriken/PxtoneJS">original PxtoneJS</a> | <a href="http://pxtone.org/">pxtone &copy; Studio Pixel</a>
 </footer>
 <script src="script.js" type="module"></script>
@@ -75,10 +75,12 @@
   // toggle info
   let commentsToggle = document.getElementById('commentsToggle');
   let output = document.querySelector('output');
+  let output = document.querySelector('footer');
   commentsToggle.onclick = function () {
     if (output.style.display === "none")
       output.style.display = "block";
     else output.style.display = "none";
+    footer.style.display = output.style.display;
   };
 </script>
 </body>
