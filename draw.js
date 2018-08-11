@@ -274,19 +274,28 @@ PlayerCanvas.prototype.updateCanvasDims = function () {
     case 'unit': default: height = unitHeight; break;
   }
 
-  let parentRect      = this.canvas.parentNode.getBoundingClientRect();
-  let fixedParentRect = this.canvasFixed.parentNode.getBoundingClientRect();
-  this.canvas.height      = Math.max(window.innerHeight, height * this.scale);
-  this.canvasFixed.height = Math.min(this.unitOffsetY * this.scale, this.canvas.height);
-  this.canvasMenu.height      = this.canvas.height;
+  this.canvasFixed.height     = this.unitOffsetY * this.scale;
   this.canvasFixedMenu.height = this.canvasFixed.height;
-
+  this.canvas.height      = height * this.scale;
+  this.canvasMenu.height  = this.canvas.height;
   this.canvasMenu.width = MENU_WIDTH * this.scale;
   this.canvasFixedMenu.width = this.canvasMenu.width;
-  this.canvas.width      = parentRect.width      - this.canvasMenu.width;
-  this.canvasFixed.width = fixedParentRect.width - this.canvasFixedMenu.width;
+  this.canvas.width      = this.canvas.parentNode.offsetWidth      - this.canvasMenu.width;
+  this.canvasFixed.width = this.canvasFixed.parentNode.offsetWidth - this.canvasFixedMenu.width;
 
   this.forceRedraw();
+}
+
+PlayerCanvas.prototype.fillCanvasHeight = function () {
+  // this isn't done immediately in updateCanvasDims because we need canvas's
+  // parentNode to shrink its height in case the new canvas height is smaller
+  // than the parentNode's natural size.
+  let parentSpace = this.canvas.parentNode.clientHeight - this.canvasFixed.height;
+  if (parentSpace > this.canvas.height) {
+    this.canvas.height     = parentSpace;
+    this.canvasMenu.height = this.canvas.height;
+    this.forceRedraw();
+  }
 }
 
 PlayerCanvas.prototype.velocityAt = function (unit_no, clock) {
@@ -731,6 +740,7 @@ PlayerCanvas.prototype.needToDraw = function () {
 
 const BGCOLOR = "#000010";
 PlayerCanvas.prototype.draw = function () {
+  this.fillCanvasHeight();
   if (!this.needToDraw()) return;
 
   // calculate time offset

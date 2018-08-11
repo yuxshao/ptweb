@@ -5,9 +5,7 @@ html, body, input, div, p, canvas {
   vertical-align:bottom;
 }
 
-html, body { width:100%; font-family: sans-serif; font-size: 10pt; }
-body { min-height:100%; }
-html { height: 100%; }
+html, body { height:100%; width:100%; font-family: sans-serif; font-size: 10pt; }
 
 #drop {
   position: relative;
@@ -190,16 +188,19 @@ body {
 
 #commentsToggle { margin-left: 5px; }
 
-#playerContainer {
-  position:relative;
-  overflow: hidden;
-  height:100%;
-  display:inline-block;
+#displayContainer {
+  background:#000010;
+  flex-grow:1;
+}
+
+#playerContainer{
+  display:flex; flex-direction:column;
+  flex-wrap: nowrap;
+  min-height:100%;
 }
 
 #controls {
   float:left;
-  display:block;
   position:sticky;
   background:#4e4b61;
   border:2px solid #69656d; /* TODO change when 2x */

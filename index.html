@@ -8,13 +8,15 @@
 <script src="pxtnDecoder.js"></script>
 <script src="Pxtone.js"></script>
 <body>
-
-<div id="fixedContainer">
-<canvas id="playerFixedMenu"></canvas>
-<canvas id="playerFixed"></canvas>
+<div id="playerContainer">
+<div id="displayContainer">
+  <div id="fixedContainer">
+    <canvas id="playerFixedMenu"></canvas>
+    <canvas id="playerFixed"></canvas>
+  </div>
+  <canvas id="playerMenu"></canvas>
+  <canvas id="player"></canvas>
 </div>
-<canvas id="playerMenu"></canvas>
-<canvas id="player"></canvas>
 
 <div id="controls">
 <div id="drop">
@@ -49,6 +51,7 @@
   <span title="pixel zoom">2x</span>: <input type="checkbox" id="scaleSelect" />
   &nbsp;<span title="dark background in keyboard view">dark</span>: <input type="checkbox" id="darkSelect" />
   <button id="commentsToggle">info</button>
+</div>
 </div>
 </div>
 
