@@ -17,10 +17,11 @@ const BASE_MEASURE_WIDTH = 192;
 
 const KEYBOARD_NOTE_NUM   = 88;
 const KEYBOARD_BASE_SHIFT = 39;
-const KEYBOARD_KEY_HEIGHT_SMALL  = 8;
-const KEYBOARD_NOTE_HEIGHT_SMALL = 5;
-const KEYBOARD_KEY_HEIGHT_BIG    = 16;
-const KEYBOARD_NOTE_HEIGHT_BIG   = 8;
+const KEYBOARD_ROW_HEIGHTS = {
+  "tiny":  { "key": 4,  "note": 3 },
+  "small": { "key": 8,  "note": 5 },
+  "big":   { "key": 16, "note": 8 }
+};
 
 const numbers_green = new Image(80, 8);
 const flags = new Image(81, 16);
@@ -185,16 +186,8 @@ PlayerCanvas.prototype.setZoom = function (zoom) {
 }
 
 PlayerCanvas.prototype.setKeyZoom = function (zoom) {
-  switch (zoom) {
-    case "small":
-      this.keyboardKeyHeight  = KEYBOARD_KEY_HEIGHT_SMALL;
-      this.keyboardNoteHeight = KEYBOARD_NOTE_HEIGHT_SMALL;
-      break;
-    case "big": default:
-      this.keyboardKeyHeight  = KEYBOARD_KEY_HEIGHT_BIG;
-      this.keyboardNoteHeight = KEYBOARD_NOTE_HEIGHT_BIG;
-      break;
-  }
+  this.keyboardKeyHeight  = KEYBOARD_ROW_HEIGHTS[zoom].key;
+  this.keyboardNoteHeight = KEYBOARD_ROW_HEIGHTS[zoom].note;
   this.updateCanvasDims();
 }
 
