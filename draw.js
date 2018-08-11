@@ -548,6 +548,10 @@ PlayerCanvas.prototype.drawKeyboard = function(ctx, canvasOffsetX, currBeat, dim
   let first_presses = new SortedList((x) => x);
   // drawQueue is used so enforce notes starting earlier are drawn earlier.
   let drawQueue = new DeferredQueue(drawKeyboardNoteForDeferredQueue);
+  // use (additive-like) symmetric blend mode so draw order doesn't matter
+  // only in dark mode, as this blend mode makes the notes look like lights
+  if (this.dark) ctx.globalCompositeOperation = 'screen'; 
+  else ctx.globalCompositeOperation = 'source-over';
 
   for (let unit_no = 0; unit_no < unit_states.length; ++unit_no) {
     unit_states[unit_no] = null;
