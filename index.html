@@ -21,12 +21,12 @@
 <div id="controlBarContainer">
 <div id="controlBar">
 <div id="controls">
-<div id="drop">
-  <p>Load file</p>
-  <input type="file" accept=".ptcop,.pttune">
-</div>
-<div class="playerButton play" style="float:left; margin:10px 0px 10px 10px; padding:10px"></div>
-<div class="stopButton stop disabled" style="float:left; margin:20px 20px 20px 10px;"></div>
+
+<label for="fileDrop" id="drop">Load file</label>
+<input type="file" id="fileDrop" accept=".ptcop,.pttune" />
+
+<div class="playerButton play" style="float:left; margin:15px 0; padding:10px"></div>
+<div class="stopButton stop disabled" style="float:left; margin:25px 20px 25px 10px;"></div>
 <div id="volumeBox">
   vol:&nbsp;<input type="range" id="volumeSlider" value="1" min="0" max="1.2" step="any">&nbsp;
   <span id="volumeIndicator">100%</span>

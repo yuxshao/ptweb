@@ -8,31 +8,17 @@ html, body, input, div, p, canvas {
 html, body { height:100%; width:100%; font-family: sans-serif; font-size: 10pt; }
 
 #drop {
+  display:block;
   position: relative;
-  width: 100px;
-  height: 40px;
-  border: 5px dotted black;
   float: left;
+  padding:15px;
   margin: 10px;
-  box-sizing: border-box;
-}
-
-#drop > p {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 100%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  color: darkgray;
-}
-
-#drop input[type="file"] {
-  position: absolute;
-  width: 100%;
-  height: 40px;
-  opacity: 0;
+  vertical-align:center;
   cursor: pointer;
+}
+
+#drop + input[type="file"] {
+  display:none;
 }
 
 output {
@@ -222,6 +208,21 @@ body {
   align-items:center;
 }
 
+#controlBar button, #drop {
+  color:inherit;
+  font-weight:bold;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background:#4E4B61;
+  outline:1px solid #1A1949;
+  border:1px solid;
+  border-color:#69656D #343255 #343255 #69656D;
+}
+
+#controlBar button:active, #drop:active {
+  border-color:#343255 #69656D #69656D #343255;
+}
 #controlBar input[type="checkbox"] {
   box-sizing:border-box;
   appearance: none;

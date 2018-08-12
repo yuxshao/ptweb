@@ -28,7 +28,7 @@ pxtone.decoder = new Worker("./pxtnDecoder.js");
 ctx.decodePxtoneStream = pxtone.decodePxtoneStream.bind(pxtone, ctx);
 
 // DOM
-const file            = document.querySelector("#drop > input[type='file']");
+const file            = document.querySelector("#fileDrop");
 const playBtn         = document.querySelector(".playerButton");
 const stopBtn         = document.querySelector(".stopButton");
 const volumeSlider    = document.querySelector("#volumeSlider");
