@@ -8,12 +8,11 @@ html, body, input, div, p, canvas {
 html, body { height:100%; width:100%; font-family: sans-serif; font-size: 10pt; }
 
 #drop {
-  display:block;
+  display:flex;
   position: relative;
-  float: left;
-  padding:15px;
+  padding:0 15px;
   margin: 0 5px 0px 10px;
-  vertical-align:center;
+  align-items: center;
 }
 
 #drop + input[type="file"] {
@@ -45,10 +44,10 @@ output > p, output > .comment {
 .play > div::before {
   position: absolute;
   content: "";
-  transform: translateX(2px);
+  transform: translate(3px, 1px);
   display: block;
   border-style: solid;
-  border-width: 10px 0 10px 17.3px;
+  border-width: 8px 0 8px 15px;
   border-color: transparent transparent transparent #00F080;
 }
 
@@ -64,26 +63,25 @@ output > p, output > .comment {
 .pause > div::before {
   position: absolute;
   content: "";
-  transform: translateX(3px);
+  transform: translateX(4px);
   display: block;
-  width: 5px;
-  height: 20px;
+  width: 4px;
+  height: 18px;
   background: #D2CA9C;
 }
 
 .pause > div::after {
   position: absolute;
   content: "";
-  transform: translateX(11px);
+  transform: translateX(12px);
   display: block;
-  width: 5px;
-  height: 20px;
+  width: 4px;
+  height: 18px;
   background: #D2CA9C;
 }
 
 .playerButton, .stopButton {
   padding: 0 10px;
-  display: flex;
   align-items:center;
 }
 
@@ -92,14 +90,16 @@ output > p, output > .comment {
 }
 
 .stop > div {
-  width: 20px;
+  height:20px;
+  margin:auto;
+  align-items:center;
 }
 
 .stop > div::before {
   content: "";
   display: block;
-  width: 20px;
-  height: 20px;
+  width:  14px;
+  height: 14px;
   background: #F00;
 }
 
@@ -134,13 +134,7 @@ input[type=range]::-moz-range-thumb {
 }
 
 #volumeBox {
-  display:flex;
   align-items:center;
-}
-
-#volumeBox {
-  padding: 10px 10px 10px 5px;
-  margin: 10px 0px;
 }
 
 #controls > div { margin: 0 5px; }
@@ -194,10 +188,11 @@ body {
   bottom:0;
 }
 
-#controls { display:flex; }
+#controlBarContainer div {
+  display:flex;
+}
 
 #controlBar {
-  display:flex;
   align-items: center;
   background:#4e4b61;
   border:3px solid;
@@ -214,7 +209,6 @@ body {
 #logoBox {
   padding:0 10px;
   height:92px;
-  display:flex;
   align-items:center;
 }
 
@@ -227,8 +221,11 @@ body {
   background:#4E4B61;
   outline:1px solid #1A1949;
   border:1px solid;
+  font-size:10pt;
   border-color:#69656D #343255 #343255 #69656D;
 }
+
+#commentsToggle { margin: 2px; min-width:60px; }
 
 .selectHolder select {
   -webkit-appearance: none;
@@ -239,6 +236,7 @@ body {
   margin:  2px;
   padding-left: 1.3em;
   min-width: 65px;
+  width:90%;
   font-size:10pt;
   color: #00003E;
 }

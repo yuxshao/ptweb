@@ -25,48 +25,54 @@
 <label for="fileDrop" id="drop" class="button">Load file</label>
 <input type="file" id="fileDrop" accept=".ptcop,.pttune" />
 
-<div class="playerButton play button"><div></div></div>
-<div class="stopButton   stop button disabled"><div></div></div>
+<div style="flex-direction:column">
+  <div class="playerButton play button" style="flex-grow:1;margin-bottom:5px;"><div></div></div>
+  <div class="stopButton   stop button disabled" style="flex-grow:1;margin-top:5px;"><div></div></div>
+</div>
+<div style="flex-direction:column">
 <div id="volumeBox">
   <div>
   vol:&nbsp;<input type="range" id="volumeSlider" value="1" min="0" max="1.2" step="any">&nbsp;
   <span id="volumeIndicator">100%</span>
   </div>
 </div>
-  <div style="display:flex; flex-direction:column">
-    <div><span title="measure width zoom">zoom-x</span></div>
-    <div class='selectHolder'>
-      <select id="zoomSelect">
-      <option value="0.5">1/2</option> <option value="1">1</option>
-      <option value="2">2</option> <option value="4">4</option>
-      </select>
-    </div>
+<div style="flex-direction:row">
+<div style="flex-direction:column; flex-grow:1">
+  <div><span title="measure width zoom">zoom-x</span></div>
+  <div class='selectHolder'>
+    <select id="zoomSelect">
+    <option value="0.5">1/2</option> <option value="1">1</option>
+    <option value="2">2</option> <option value="4">4</option>
+    </select>
   </div>
-  <div style="display:flex; flex-direction:column">
-    <div><span title="key height in keyboard view">zoom-y</span></div>
-    <div class='selectHolder'>
-      <select id="keyZoomSelect">
-        <option value="tiny">1/4</option>
-        <option value="small" selected="selected">1/2</option>
-        <option value="big">1</option>
-      </select>
-    </div>
+</div>
+<div style="flex-direction:column; flex-grow:1">
+  <div><span title="key height in keyboard view">zoom-y</span></div>
+  <div class='selectHolder'>
+    <select id="keyZoomSelect">
+      <option value="tiny">1/4</option>
+      <option value="small" selected="selected">1/2</option>
+      <option value="big">1</option>
+    </select>
   </div>
-  <div style="display:flex; flex-direction:column">
-    <div><span title="playhead scroll snap">snap</span></div>
-    <div class='selectHolder'>
-      <select id="snapSelect">
-        <option value="meas">meas</option>
-        <option value="beat">beat</option>
-        <option value="none">none</option>
-      </select>
-    </div>
+</div>
+<div style="flex-direction:column; flex-grow:1">
+  <div><span title="playhead scroll snap">snap</span></div>
+  <div class='selectHolder'>
+    <select id="snapSelect">
+      <option value="meas">meas</option>
+      <option value="beat">beat</option>
+      <option value="none">none</option>
+    </select>
   </div>
-  <div style="display:flex; flex-direction:column">
-    <div><input type="checkbox" id="scaleSelect" /><span title="pixel zoom">2x</span></div>
-    <div><input type="checkbox" id="darkSelect" /><span title="dark background in keyboard view">dark</span></div>
-  </div>
-  <button id="commentsToggle">info</button>
+</div>
+</div>
+</div>
+<div style="flex-direction:column">
+  <div style='flex-grow:1'><input type="checkbox" id="scaleSelect" /><span title="pixel zoom">2x</span></div>
+  <div style='flex-grow:1'><input type="checkbox" id="darkSelect" /><span title="dark background in keyboard view">dark</span></div>
+  <button id="commentsToggle" style='flex-grow:1'>info</button>
+</div>
 </div>
 <div id="logoBox"><img src="./res/logo.png" alt="PxTone Web" /></div>
 <div id="mooBackground">
