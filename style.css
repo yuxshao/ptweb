@@ -14,7 +14,6 @@ html, body { height:100%; width:100%; font-family: sans-serif; font-size: 10pt; 
   padding:15px;
   margin: 10px;
   vertical-align:center;
-  cursor: pointer;
 }
 
 #drop + input[type="file"] {
@@ -24,9 +23,6 @@ html, body { height:100%; width:100%; font-family: sans-serif; font-size: 10pt; 
 output {
   display: block;
   width:100%;
-  /* width: 800px;
-  height: 200px;
-  border: 5px dotted black; */
   float: left;
   padding: 20px;
   box-sizing: border-box;
@@ -37,8 +33,8 @@ output > p, output > .comment {
   margin-left: 3em;
 }
 
-.playerButton:not(.disabled) {
-  cursor: pointer;
+.button.disabled {
+  background:#00003E;
 }
 
 .play {
@@ -49,19 +45,15 @@ output > p, output > .comment {
 .play::before {
   position: absolute;
   content: "";
-  transform: translateX(1.35px);
+  transform: translateX(2px);
   display: block;
   border-style: solid;
   border-width: 10px 0 10px 17.3px;
-  border-color: transparent transparent transparent black;
+  border-color: transparent transparent transparent #00F080;
 }
 
 .play.disabled::before {
-  border-color: transparent transparent transparent darkgray;
-}
-
-.play:not(.disabled):hover::before {
-  border-color: transparent transparent transparent dimgray;
+  border-color: transparent transparent transparent #4E4B61;
 }
 
 .pause {
@@ -72,52 +64,69 @@ output > p, output > .comment {
 .pause::before {
   position: absolute;
   content: "";
-  transform: translateX(1px);
+  transform: translateX(3px);
   display: block;
   width: 5px;
   height: 20px;
-  background: black;
+  background: #D2CA9C;
 }
 
 .pause::after {
   position: absolute;
   content: "";
-  transform: translateX(9px);
+  transform: translateX(11px);
   display: block;
   width: 5px;
   height: 20px;
-  background: black;
+  background: #D2CA9C;
 }
 
-.pause.disabled::before, .pause.disabled::after {
-  background: darkgray;
-}
-
-.pause:not(.disabled):hover::before, .pause:not(.disabled):hover::after {
-  background: dimgray;
-}
-
-.stopButton:not(.disabled) {
-  cursor: pointer;
+.pause.disabled::before, .pause.disabled::after, .stop.disabled::before {
+  background: #4E4B61;
 }
 
 .stop {
   width: 20px;
   height: 20px;
-  background: black;
-  margin: 20px;
 }
 
-.stop.disabled {
-  background: darkgray;
-}
-
-.stop:not(.disabled):hover {
-  background: dimgray;
+.stop::before {
+  position: absolute;
+  content: "";
+  display: block;
+  width: 20px;
+  height: 20px;
+  background: #F00;
 }
 
 #volumeSlider {
   vertical-align: middle;
+}
+
+input[type=range]::-moz-range-progress {
+  -moz-appearance:none;
+  height:0.6em;
+  background-color:#00F080;
+}
+
+input[type=range]::-moz-range-track {
+  -moz-appearance:none;
+  height:0.6em;
+  background-color:#00003E;
+  border:1px solid #00003E;
+}
+
+input[type=range] {
+  -moz-appearance:none;
+}
+
+input[type=range]::-moz-range-thumb {
+  -moz-appearance:none;
+  border:1px solid;
+  border-color:#837E78 #00003E #00003E #837E78;
+  width:2px;
+  height:0.9em;
+  background:#4E4B61;
 }
 
 #volumeBox, #controlBox {
@@ -177,7 +186,7 @@ body {
 #mooBackground {
   flex-grow:1;
   height:100%;
-  background:url('./moo.png');
+  background:url('./res/moo.png');
 }
 
 #controlBarContainer {
@@ -208,7 +217,7 @@ body {
   align-items:center;
 }
 
-#controlBar button, #drop {
+#controlBar button, .button {
   color:inherit;
   font-weight:bold;
   appearance: none;
@@ -220,7 +229,36 @@ body {
   border-color:#69656D #343255 #343255 #69656D;
 }
 
-#controlBar button:active, #drop:active {
+.selectHolder select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: #9D9784;
+  outline: 1px solid #D2CA9C;
+  border:  1px solid #4E4B61;
+  margin:  2px;
+  padding-left: 1.3em;
+  min-width: 65px;
+  font-size:10pt;
+  color: #00003E;
+}
+
+.selectHolder { position:relative; }
+
+.selectHolder:before {
+  content:"";
+  width:0;
+  height:0;
+  border-left: 6px solid transparent;
+  border-right:6px solid transparent;
+  border-top:  6px solid #4E4B61;
+  position:absolute;
+  left:0.5em;
+  top:0.85em;
+  color:#000;
+  pointer-events:none;
+}
+
+#controlBar button:active, .button:active, .button.disabled {
   border-color:#343255 #69656D #69656D #343255;
 }
 #controlBar input[type="checkbox"] {

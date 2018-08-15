@@ -113,8 +113,8 @@ function rectContains(rect, point) {
           rect.x + rect.w > point.x && rect.y + rect.h > point.y);
 }
 
-let unitTabRect = { x:45, y:0, w:39, h:15 };
-let keyTabRect  = { x:84, y:0, w:61, h:15 };
+let unitTabRect = { x:44, y:0, w:39, h:15 };
+let keyTabRect  = { x:83, y:0, w:61, h:15 };
 let keyToggleRect  = { x:1,  y:1, w:18, h:14 };
 let unitToggleRect = { x:19, y:1, w:18, h:14 };
 

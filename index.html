@@ -22,11 +22,11 @@
 <div id="controlBar">
 <div id="controls">
 
-<label for="fileDrop" id="drop">Load file</label>
+<label for="fileDrop" id="drop" class="button">Load file</label>
 <input type="file" id="fileDrop" accept=".ptcop,.pttune" />
 
-<div class="playerButton play" style="float:left; margin:15px 0; padding:10px"></div>
-<div class="stopButton stop disabled" style="float:left; margin:25px 20px 25px 10px;"></div>
+<div class="playerButton play button" style="float:left; margin:15px 15px 15px 0; padding:10px"></div>
+<div class="stopButton stop button disabled" style="float:left; margin:15px 0; padding:10px"></div>
 <div id="volumeBox">
   vol:&nbsp;<input type="range" id="volumeSlider" value="1" min="0" max="1.2" step="any">&nbsp;
   <span id="volumeIndicator">100%</span>
@@ -34,7 +34,7 @@
 <div id="controlBox">
   <div style="display:flex; flex-direction:column">
     <div><span title="measure width zoom">zoom-x</span></div>
-    <div>
+    <div class='selectHolder'>
       <select id="zoomSelect">
       <option value="0.5">1/2</option> <option value="1">1</option>
       <option value="2">2</option> <option value="4">4</option>
@@ -43,7 +43,7 @@
   </div>
   <div style="display:flex; flex-direction:column">
     <div><span title="key height in keyboard view">zoom-y</span></div>
-    <div>
+    <div class='selectHolder'>
       <select id="keyZoomSelect">
         <option value="tiny">1/4</option>
         <option value="small" selected="selected">1/2</option>
@@ -53,7 +53,7 @@
   </div>
   <div style="display:flex; flex-direction:column">
     <div><span title="playhead scroll snap">snap</span></div>
-    <div>
+    <div class='selectHolder'>
       <select id="snapSelect">
         <option value="meas">meas</option>
         <option value="beat">beat</option>
@@ -68,7 +68,7 @@
   <button id="commentsToggle">info</button>
 </div>
 </div>
-<div id="logoBox"><img src="./logo.png" alt="PxTone Web" /></div>
+<div id="logoBox"><img src="./res/logo.png" alt="PxTone Web" /></div>
 <div id="mooBackground">
 </div>
 </div>
