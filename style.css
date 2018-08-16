@@ -155,9 +155,13 @@ footer {
   padding: 10px 0px;
 }
 
-#fixedContainer { position: sticky; z-index:1; top:0; }
+#fixedContainer { position: sticky; top:0; z-index:2; }
 #playerFixed, #player         { position:absolute; right:0; }
-#playerFixedMenu, #playerMenu { position:sticky;   left:0; z-index:1; }
+#playerFixedMenu, #playerMenu { position:sticky;   left:0; }
+
+#playerMenu          { z-index:1; }
+#playerFixedMenu     { z-index:3; }
+#controlBarContainer { z-index:4; }
 
 body {
   overflow-x: hidden;
