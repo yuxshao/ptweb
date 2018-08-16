@@ -8,7 +8,7 @@ function emptyStream(ctx) {
   return {
     next: (duration) => ctx.createBuffer(1, 44100*duration, 44100),
     release: () => null,
-    reset: () => null
+    reset: (seek_seconds) => null
   };
 }
 
@@ -66,10 +66,10 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
     await resume();
   }
 
-  let stop = async function () {
+  let stop = async function (seek_seconds = 0) {
     await pause();
     if (!is_started) return;
-    await stream.reset(0);
+    await stream.reset(seek_seconds);
     startTime = ctx.currentTime;
     clearBuffers();
     is_started = false;
@@ -101,9 +101,9 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
   }
 
   let guarded = (f) => {
-    return async () => {
+    return async (...args) => {
       const release = await mutex.acquire();
-      try { await f(); } finally { release(); }
+      try { await f(...args); } finally { release(); }
     };
   }
   this.start   = guarded(start);
@@ -117,7 +117,7 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
   }
 
   // can't use ctx.state in place of is_suspended because updates are delayed/async
-  this.isStarted    = () => is_started;
+  this.isStarted = () => is_started;
 
   // initialize player state
   this.isSuspended = () => true;
