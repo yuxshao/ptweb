@@ -38,15 +38,20 @@ flags.repeat_rect = { x: 0,  y: 8, w: 36, h: 8 };
 playhead.centre = { x: 4, y: 4 };
 playhead.src = './res/playhead.png';
 
-unitbars.menu_rect_unit = { x: 0,  y: 0,  w: 145, h: 16  };
-unitbars.menu_rect_key  = { x: 0,  y: 16, w: 145, h: 16  };
-unitbars.tab_rect       = { x: 0,  y: 32, w: 145, h: 16  };
+unitbars.menu_rect_unit = { x: 0,  y: 0,  w: 144, h: 16  };
+unitbars.menu_rect_key  = { x: 0,  y: 16, w: 144, h: 16  };
+unitbars.menu_rect_arrc = { x: 16, y: 96,  w: 36, h: 16  };
+
+unitbars.tab_rect       = { x: 0,  y: 32, w: 144, h: 16  };
 unitbars.side_rect      = { x: 0,  y: 48, w: 16,  h: 160 };
+
 unitbars.regular_rect   = { x: 16, y: 48, w: 128, h: 16  };
 unitbars.selected_rect  = { x: 16, y: 64, w: 128, h: 16  };
 unitbars.nothing_rect   = { x: 16, y: 80, w: 128, h: 16  };
+
 unitbars.src = './res/unitbars.png';
-const MENU_WIDTH = unitbars.regular_rect.w + unitbars.side_rect.w;
+const MENU_WIDTH = unitbars.menu_rect_unit.w;
+const COLLAPSED_MENU_WIDTH = unitbars.menu_rect_arrc.w;
 
 var imagesToLoad = [numbers_green, flags, playhead, unitbars];
 // we don't wait for the onloads to be called in case some were already loaded
@@ -101,6 +106,7 @@ export let PlayerCanvas = function (canvas, canvasFixed, canvasMenu, canvasFixed
   this.setScale(1);
   this.addListeners();
   this.view = "unit";
+  this.collapsed_menu = false;
 }
 
 PlayerCanvas.prototype.toLocalCoords = function (point) {
@@ -115,6 +121,8 @@ function rectContains(rect, point) {
 
 let unitTabRect = { x:44, y:0, w:39, h:15 };
 let keyTabRect  = { x:83, y:0, w:61, h:15 };
+let arrTabRect  = { x:0,  y:0, w:44, h:15 };
+let arrcTabRect = { x:0,  y:0, w:36, h:15 };
 let keyToggleRect  = { x:1,  y:1, w:18, h:14 };
 let unitToggleRect = { x:19, y:1, w:18, h:14 };
 
@@ -125,10 +133,15 @@ PlayerCanvas.prototype.addListeners = function() {
   // switch tab
   this.canvasFixedMenu.addEventListener('mousedown', (e) => {
     let coord = this.toLocalCoords({x:e.offsetX, y:e.offsetY});
-    if (rectContains(unitTabRect, coord))
-      this.view = 'unit';
-    if (rectContains(keyTabRect, coord))
-      this.view = 'keyboard';
+    if (!this.collapsed_menu) {
+      if (rectContains(unitTabRect, coord))
+        this.view = 'unit';
+      if (rectContains(keyTabRect, coord))
+        this.view = 'keyboard';
+      if (rectContains(arrTabRect, coord))
+        this.collapsed_menu = true;
+    } else if (rectContains(arrcTabRect, coord))
+      this.collapsed_menu = false;
     this.updateCanvasDims();
     this.forceRedraw();
   });
@@ -250,6 +263,11 @@ PlayerCanvas.prototype.setData = function(units, evels, master) {
   this.updateCanvasDims();
 }
 
+PlayerCanvas.prototype.getMenuWidth = function () {
+  if (this.collapsed_menu) return COLLAPSED_MENU_WIDTH;
+  return MENU_WIDTH;
+}
+
 PlayerCanvas.prototype.updateCanvasDims = function () {
   let height;
   this.unitOffsetY = unitbars.menu_rect_unit.h + unitbars.tab_rect.h;
@@ -271,7 +289,7 @@ PlayerCanvas.prototype.updateCanvasDims = function () {
   this.canvasFixedMenu.height = this.canvasFixed.height;
   this.canvas.height      = height * this.scale;
   this.canvasMenu.height  = this.canvas.height;
-  this.canvasMenu.width = MENU_WIDTH * this.scale;
+  this.canvasMenu.width = this.getMenuWidth() * this.scale;
   this.canvasFixedMenu.width = this.canvasMenu.width;
   this.canvas.width      = this.canvas.parentNode.offsetWidth      - this.canvasMenu.width;
   this.canvasFixed.width = this.canvasFixed.parentNode.offsetWidth - this.canvasFixedMenu.width;
@@ -349,6 +367,8 @@ PlayerCanvas.prototype.drawUnitList = function (ctx, height, currBeat, pinned) {
   ctx.translate(unitbars.side_rect.w, 0);
   let numRenderedRows = 0;
   ctx.font = "11px sans-serif";
+  let showXoff = 3;
+  let pinnedXoff = (this.collapsed_menu ? showXoff : 21);
   for (i = 0; i < this.units.length; ++i) {
     if (pinned !== null && this.unitDrawOptions[i].pinned !== pinned) continue;
     numRenderedRows++;
@@ -363,9 +383,9 @@ PlayerCanvas.prototype.drawUnitList = function (ctx, height, currBeat, pinned) {
     let vol = this.volumeAt(i, currClock);
     let is_playing = playingOffset !== -1;
     if (this.unitDrawOptions[i].key)
-      this.drawToggle(ctx, 3, 2, i, is_playing, vel, vol, pinned === true);
+      this.drawToggle(ctx, showXoff, 2, i, is_playing, vel, vol, pinned === true);
     if (this.unitDrawOptions[i].pinned)
-      this.drawToggle(ctx, 21, 2, i, is_playing, vel, vol, pinned === true);
+      this.drawToggle(ctx, pinnedXoff, 2, i, is_playing, vel, vol, pinned === true);
 
     ctx.fillText(this.units[i], UNIT_TEXT_PADDING, unitbars.regular_rect.h / 2);
     ctx.translate(0, unitbars.regular_rect.h);
@@ -779,10 +799,13 @@ PlayerCanvas.prototype.draw = function () {
   ctx.clearRect(0, 0, this.canvasFixed.width, this.canvasFixed.height);
 
   let rect;
-  switch (this.view) {
-    case "keyboard":      rect = unitbars.menu_rect_key; break;
-    case "unit": default: rect = unitbars.menu_rect_unit; break;
+  if (!this.collapsed_menu) {
+    switch (this.view) {
+      case "keyboard":      rect = unitbars.menu_rect_key; break;
+      case "unit": default: rect = unitbars.menu_rect_unit; break;
+    }
   }
+  else rect = unitbars.menu_rect_arrc;
   let topShift = rect.h + unitbars.tab_rect.h;
 
   this.withWidgetTransform(ctx, () => {
