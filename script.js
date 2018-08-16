@@ -9,13 +9,14 @@ const ctx = new (window.AudioContext || window.webkitAudioContext)();
 ctx.suspend();
 
 let currentAudioPlayer = new AudioPlayer(null, ctx);
+let progressBar = document.getElementById('songProgress');
 
 let myPlayerCanvas = (() => {
   let player    = document.getElementById('player');
   let fixed     = document.getElementById('playerFixed');
   let fixedMenu = document.getElementById('playerFixedMenu');
   let menu      = document.getElementById('playerMenu');
-  return new PlayerCanvas(player, fixed, menu, fixedMenu);
+  return new PlayerCanvas(player, fixed, menu, fixedMenu, progressBar);
 })();
 myPlayerCanvas.getTime = currentAudioPlayer.getCurrentTime;
 myPlayerCanvas.drawContinuously();
@@ -64,10 +65,8 @@ const escapeHTML = (() => {
 
 let loadingFile = false;
 function updateButtonDisplay() {
-  if (currentAudioPlayer.isStarted() && !loadingFile)
-    stopBtn.classList.remove("disabled");
-  else
-    stopBtn.classList.add("disabled");
+  if (!loadingFile) stopBtn.classList.remove("disabled");
+  else stopBtn.classList.add("disabled");
 
   if (currentAudioPlayer.isSuspended()) {
     playBtn.classList.remove("pause");
@@ -84,6 +83,7 @@ function updateButtonDisplay() {
 async function resumeAudio() { await currentAudioPlayer.resume(); updateButtonDisplay(); }
 async function pauseAudio()  { await currentAudioPlayer.pause();  updateButtonDisplay(); }
 async function stopAudio()   { await currentAudioPlayer.stop();   updateButtonDisplay(); }
+async function seekAudio(s)  { await currentAudioPlayer.seek(s);  updateButtonDisplay(); }
 
 // button
 const playerStateChange = async () => {
@@ -98,11 +98,18 @@ playBtn.addEventListener("click", playerStateChange);
 const playerStop = async () => {
   if (stopBtn.classList.contains("disabled")) return;
   stopBtn.classList.add("disabled");
-  if (currentAudioPlayer.stop()) await stopAudio();
+  if (currentAudioPlayer.isStarted()) await stopAudio();
   stopBtn.classList.remove("disabled");
   updateButtonDisplay();
 }
 stopBtn.addEventListener("click", playerStop);
+
+// progress
+const progressClick = (e) => {
+  var progressValue = e.offsetX * progressBar.max / progressBar.offsetWidth;
+  return seekAudio(progressValue);
+};
+progressBar.addEventListener("click", progressClick);
 
 // volume slider
 const updateVolume = (_e) => {

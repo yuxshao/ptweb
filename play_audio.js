@@ -54,11 +54,12 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
       }
     }
 
-    startTime = ctx.currentTime + 0.1;
+    let delay = 0.05;
+    startTime += delay;
     let dummy = {};
 
     // schedule the first buffer
-    await nextChunk(startTime, dummy);
+    await nextChunk(ctx.currentTime + delay, dummy);
     // also schedule 2nd buffer immediately (when buffer '0' finishes)
     await dummy.onended(null);
     is_started = true;
@@ -66,11 +67,14 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
     await resume();
   }
 
-  let stop = async function (seek_seconds = 0) {
+  // minStart prevents the displayed clock from backing up a bit when resuming
+  let minStart = 0;
+  let stop = async function (seek_seconds = null) {
     await pause();
-    if (!is_started) return;
+    if (!is_started && seek_seconds === null) return;
     await stream.reset(seek_seconds);
-    startTime = ctx.currentTime;
+    startTime = ctx.currentTime - seek_seconds;
+    minStart = seek_seconds;
     clearBuffers();
     is_started = false;
   }
@@ -88,6 +92,12 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
       await ctx.resume();
     }
     else await start();
+  }
+
+  let seek = async function (seek_seconds) {
+    let was_suspended = is_suspended;
+    await stop(seek_seconds);
+    if (!was_suspended) await start();
   }
 
   let release = async () => {
@@ -111,6 +121,7 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
   this.pause   = guarded(pause);
   this.resume  = guarded(resume);
   this.release = guarded(release);
+  this.seek    = guarded(seek);
 
   this.setVolume = function (volume) {
     gainNode.gain.setValueAtTime(volume, ctx.currentTime);
@@ -127,5 +138,5 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
   });
 
   // current time along the song (according to actual audio context)
-  this.getCurrentTime = () => ctx.currentTime - startTime;
+  this.getCurrentTime = () => Math.max(ctx.currentTime - startTime, minStart);
 }

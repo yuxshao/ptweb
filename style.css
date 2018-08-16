@@ -103,17 +103,19 @@ output > p, output > .comment {
   background: #F00;
 }
 
+#songProgress { width:100%; }
+
 #volumeSlider {
   vertical-align: middle;
 }
 
-input[type=range]::-moz-range-progress {
+input[type=range]::-moz-range-progress, progress::-moz-progress-bar {
   -moz-appearance:none;
   height:0.6em;
   background-color:#00F080;
 }
 
-input[type=range]::-moz-range-track {
+input[type=range]::-moz-range-track, progress {
   -moz-appearance:none;
   height:0.6em;
   background-color:#00003E;
@@ -188,6 +190,7 @@ body {
 
 #controlBarContainer {
   position:sticky;
+  flex-direction:column;
   display:flex;
   bottom:0;
 }

@@ -88,11 +88,12 @@ function middleSnap(x) { return Math.floor(x) + 0.5; }
 
 let getColor = getColorGen(DEFAULT_VELOCITY, DEFAULT_VOLUME);
 
-export let PlayerCanvas = function (canvas, canvasFixed, canvasMenu, canvasFixedMenu) {
+export let PlayerCanvas = function (canvas, canvasFixed, canvasMenu, canvasFixedMenu, progressBar) {
   this.canvas          = canvas;
   this.canvasFixed     = canvasFixed;
   this.canvasMenu      = canvasMenu;
   this.canvasFixedMenu = canvasFixedMenu;
+  this.progressBar     = progressBar;
 
   this.lastDrawState = {}; // for avoiding redrawing the same thing
   this.getTime = () => 0;
@@ -761,19 +762,23 @@ PlayerCanvas.prototype.draw = function () {
   if (!this.needToDraw()) return;
 
   // calculate time offset
+  let lastBeat = (this.master.lastMeas || this.master.measNum) * this.master.beatNum;
   let currBeat = (() => {
     let currTime = this.getTime();
     let beat = currTime * this.master.beatTempo / 60;
-    let lastBeat = (this.master.lastMeas || this.master.measNum) * this.master.beatNum;
     if (beat < lastBeat) return beat;
     let repeatBeat = this.master.repeatMeas * this.master.beatNum;
     return (beat - repeatBeat) % (lastBeat - repeatBeat) + repeatBeat;
   })();
-  if (currBeat < 0) currBeat = 0;
+  // if (currBeat < 0) currBeat = 0;
 
   let getDims = (canvas) => {
     return { w: canvas.width / this.scale, h: canvas.height / this.scale };
   }
+
+  // progress (seconds)
+  this.progressBar.max   = lastBeat / this.master.beatTempo * 60;
+  this.progressBar.value = currBeat / this.master.beatTempo * 60;
 
   let ctx = this.ctx();
   ctx.imageSmoothingEnabled = false;
