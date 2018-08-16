@@ -104,27 +104,51 @@ output > p, output > .comment {
 }
 
 #songProgress { width:100%; }
+#volumeSlider { vertical-align: middle; }
 
-#volumeSlider {
-  vertical-align: middle;
+/* a bunch of slider and progress styling */
+progress::-webkit-progress-value {
+  -webkit-appearance:none;
+  height:0.6em;
+  background-color:#00F080;
 }
 
-input[type=range]::-moz-range-progress, progress::-moz-progress-bar {
+input[type=range]::-moz-range-progress {
   -moz-appearance:none;
   height:0.6em;
   background-color:#00F080;
 }
 
-input[type=range]::-moz-range-track, progress {
+progress::-moz-progress-bar {
+  -moz-appearance:none;
+  height:0.5em;
+  background-color:#00F080;
+}
+
+input[type=range]::-moz-range-track {
   -moz-appearance:none;
   height:0.6em;
   background-color:#00003E;
   border:1px solid #00003E;
 }
 
-input[type=range] {
+progress::-webkit-progress-bar {
   -moz-appearance:none;
+  -webkit-appearance:none;
+  height:0.5em;
+  background-color:#00003E;
+  border:1px solid #00003E;
 }
+
+progress {
+  -moz-appearance:none;
+  -webkit-appearance:none;
+  height:0.5em;
+  background-color:#00003E;
+  border:1px solid #00003E;
+}
+
+input[type=range] { -moz-appearance:none; }
 
 input[type=range]::-moz-range-thumb {
   -moz-appearance:none;
@@ -184,7 +208,7 @@ body {
 
 #mooBackground {
   flex-grow:1;
-  height:100%;
+  align-self:stretch;
   background:url('./res/moo.png');
 }
 
