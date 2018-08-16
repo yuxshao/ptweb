@@ -112,7 +112,7 @@ export let PlayerCanvas = function (canvas, canvasFixed, canvasMenu, canvasFixed
 
 PlayerCanvas.prototype.toLocalCoords = function (point) {
   // TODO use currentTransform when it becomes more widely available
-  return { x: point.x/this.scale, y: point.y/this.scale - 1 }
+  return { x: point.x/this.scale, y: point.y/this.scale };
 }
 
 function rectContains(rect, point) {
@@ -153,6 +153,20 @@ PlayerCanvas.prototype.addListeners = function() {
     coord.y -= unitbars.menu_rect_key.h + unitbars.tab_rect.h;
     coord.x -= unitbars.side_rect.w;
     this.handleToggle(e, coord, true);
+    this.updateCanvasDims();
+    this.forceRedraw();
+  });
+
+  // seek
+  this.canvasFixed.addEventListener('mousedown', (e) => {
+    let coord = this.toLocalCoords({x:e.offsetX, y:e.offsetY});
+    let currBeat = this.getCurrBeat();
+    let seekPosPx = coord.x - this.getSongPositionShift(currBeat,
+                      this.canvasFixed.width / this.scale);
+    let seekBeat = seekPosPx / this.measureWidth * this.master.beatNum;
+    if (seekBeat >= 0 && seekBeat < this.getLastBeat())
+      this.audioSeek(seekBeat / this.master.beatTempo * 60);
+
     this.updateCanvasDims();
     this.forceRedraw();
   });
@@ -756,29 +770,33 @@ PlayerCanvas.prototype.needToDraw = function () {
   return need;
 }
 
+PlayerCanvas.prototype.getLastBeat = function () {
+  return (this.master.lastMeas || this.master.measNum) * this.master.beatNum;
+}
+
+PlayerCanvas.prototype.getCurrBeat = function () {
+  let currTime = this.getTime();
+  let beat = currTime * this.master.beatTempo / 60;
+  let lastBeat = this.getLastBeat();
+  if (beat < lastBeat) return beat;
+  let repeatBeat = this.master.repeatMeas * this.master.beatNum;
+  return (beat - repeatBeat) % (lastBeat - repeatBeat) + repeatBeat;
+}
+
 const BGCOLOR = "#000010";
 PlayerCanvas.prototype.draw = function () {
   this.fillCanvasHeight();
   if (!this.needToDraw()) return;
 
-  // calculate time offset
-  let lastBeat = (this.master.lastMeas || this.master.measNum) * this.master.beatNum;
-  let currBeat = (() => {
-    let currTime = this.getTime();
-    let beat = currTime * this.master.beatTempo / 60;
-    if (beat < lastBeat) return beat;
-    let repeatBeat = this.master.repeatMeas * this.master.beatNum;
-    return (beat - repeatBeat) % (lastBeat - repeatBeat) + repeatBeat;
-  })();
-  // if (currBeat < 0) currBeat = 0;
+  let currBeat = this.getCurrBeat();
 
   let getDims = (canvas) => {
     return { w: canvas.width / this.scale, h: canvas.height / this.scale };
   }
 
   // progress (seconds)
-  this.progressBar.max   = lastBeat / this.master.beatTempo * 60;
-  this.progressBar.value = currBeat / this.master.beatTempo * 60;
+  this.progressBar.max   = this.getLastBeat() / this.master.beatTempo * 60;
+  this.progressBar.value = currBeat           / this.master.beatTempo * 60;
 
   let ctx = this.ctx();
   ctx.imageSmoothingEnabled = false;

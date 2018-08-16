@@ -19,6 +19,7 @@ let myPlayerCanvas = (() => {
   return new PlayerCanvas(player, fixed, menu, fixedMenu, progressBar);
 })();
 myPlayerCanvas.getTime = currentAudioPlayer.getCurrentTime;
+myPlayerCanvas.audioSeek = currentAudioPlayer.seek;
 myPlayerCanvas.drawContinuously();
 
 // Pxtone initialize
@@ -157,6 +158,7 @@ async function reader$onload() {
   updateVolume(null);
 
   myPlayerCanvas.getTime = currentAudioPlayer.getCurrentTime;
+  myPlayerCanvas.audioSeek = currentAudioPlayer.seek;
   myPlayerCanvas.isStarted = currentAudioPlayer.isStarted;
   myPlayerCanvas.setData(units, evels, master);
   loadingFile = false;
