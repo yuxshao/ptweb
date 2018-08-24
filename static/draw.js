@@ -27,16 +27,20 @@ const numbers_green = new Image(80, 8);
 const flags = new Image(81, 16);
 const playhead = new Image(9, 5);
 const unitbars = new Image(145, 192);
-numbers_green.src = './res/numbers_green.png';
+
+// in case draw.js is included in an html file in a different folder, the
+// including file needs to provide the location of the resource URL
+window.RESOURCE_URL = (window.RESOURCE_URL || './res');
+numbers_green.src = window.RESOURCE_URL + '/numbers_green.png';
 numbers_green.digit_size = { x: 8, y: 8 };
 
-flags.src = './res/flags.png';
+flags.src = window.RESOURCE_URL + '/flags.png';
 flags.top_rect    = { x: 0,  y: 0, w: 36, h: 8 };
 flags.last_rect   = { x: 45, y: 0, w: 35, h: 8 };
 flags.repeat_rect = { x: 0,  y: 8, w: 36, h: 8 };
 
 playhead.centre = { x: 4, y: 4 };
-playhead.src = './res/playhead.png';
+playhead.src = window.RESOURCE_URL + '/playhead.png';
 
 unitbars.menu_rect_unit = { x: 0,  y: 0,  w: 144, h: 16  };
 unitbars.menu_rect_key  = { x: 0,  y: 16, w: 144, h: 16  };
@@ -49,7 +53,7 @@ unitbars.regular_rect   = { x: 16, y: 48, w: 128, h: 16  };
 unitbars.selected_rect  = { x: 16, y: 64, w: 128, h: 16  };
 unitbars.nothing_rect   = { x: 16, y: 80, w: 128, h: 16  };
 
-unitbars.src = './res/unitbars.png';
+unitbars.src = window.RESOURCE_URL + '/unitbars.png';
 const MENU_WIDTH = unitbars.menu_rect_unit.w;
 const COLLAPSED_MENU_WIDTH = unitbars.menu_rect_arrc.w;
 
