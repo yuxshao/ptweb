@@ -855,7 +855,6 @@ PlayerCanvas.prototype.draw = function () {
     ctx.translate(0, -topShift);
 
     // top-left tabs
-    // TODO not sure why it needs to be offset -1
     drawImageRect(ctx, unitbars, rect, 0, 0);
     drawImageRect(ctx, unitbars, unitbars.tab_rect, 0, rect.h);
   });
