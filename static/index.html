@@ -95,8 +95,7 @@
 <footer style="display:none">
   <a href="./help_en.html">help</a> | <a href="https://github.com/yuxshao/ptweb">ptweb source</a> | <a href="https://github.com/petamoriken/PxtoneJS">original PxtoneJS</a> | <a href="http://pxtone.org/">pxtone &copy; Studio Pixel</a>
 </footer>
-<script src="script.js" type="module"></script>
-<script>
+<script type="module">
   // toggle info
   let commentsToggle = document.getElementById('commentsToggle');
   let output = document.querySelector('output');
@@ -107,6 +106,14 @@
     else output.style.display = "none";
     footer.style.display = output.style.display;
   };
+
+  // load file
+  import { loadFile } from './script.js'
+  const file = document.querySelector("#fileDrop");
+  file.addEventListener("change", () => {
+    const pxtnFile = file.files[0];
+    loadFile(pxtnFile, pxtnFile.name);
+  });
 </script>
 </body>
 </html>

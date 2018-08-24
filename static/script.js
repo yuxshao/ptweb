@@ -23,14 +23,14 @@ myPlayerCanvas.audioSeek = currentAudioPlayer.seek;
 myPlayerCanvas.drawContinuously();
 
 // Pxtone initialize
+window.DECODER_URL = (window.DECODER_URL || "./pxtnDecoder.js");
 const pxtone = new Pxtone();
-pxtone.decoder = new Worker("./pxtnDecoder.js");
+pxtone.decoder = new Worker(window.DECODER_URL);
 
 // set decodePxtoneData to AudioContext
 ctx.decodePxtoneStream = pxtone.decodePxtoneStream.bind(pxtone, ctx);
 
 // DOM
-const file            = document.querySelector("#fileDrop");
 const playBtn         = document.querySelector(".playerButton");
 const stopBtn         = document.querySelector(".stopButton");
 const volumeSlider    = document.querySelector("#volumeSlider");
@@ -166,15 +166,12 @@ async function reader$onload() {
 }
 
 // input Pxtone Collage file
-file.addEventListener("change", () => {
-  const pxtnFile = file.files[0];
-  
-  pxtnName.innerHTML = pxtnFile.name;
+export let loadFile = function(file, filename) {
+  pxtnName.innerHTML = filename;
   pxtnTitle.innerHTML = "&nbsp;";
   pxtnComment.innerHTML = "&nbsp;";
-  
+
   const reader = new FileReader();
   reader.addEventListener("load", reader$onload);
-  reader.readAsArrayBuffer(pxtnFile);
-});
-
+  reader.readAsArrayBuffer(file);
+}
