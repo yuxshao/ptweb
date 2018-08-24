@@ -1,24 +1,28 @@
-all: pxtnDecoder Pxtone.js
+all: build/static build/pxtnDecoder build/Pxtone.js
 
-pxtnDecoder: pxtnDecoder.js emDecoder.wasm
+build:
+	mkdir build
 
-pxtnDecoder.js:
+build/static: build
+	cp -r static/* build
+
+build/pxtnDecoder: build build/pxtnDecoder.js build/emDecoder.wasm
+
+build/pxtnDecoder.js: build
 	(cd pxtnDecoder; make build/pxtnDecoder.js)
-	cp pxtnDecoder/build/pxtnDecoder.js .
+	cp pxtnDecoder/build/pxtnDecoder.js build
 
-emDecoder.wasm:
+build/emDecoder.wasm: build
 	(cd pxtnDecoder; make build/pxtnDecoder.js)
-	cp pxtnDecoder/src/emDecoder.wasm .
+	cp pxtnDecoder/src/emDecoder.wasm build
 
-Pxtone.js:
+build/Pxtone.js: build
 	(cd PxtoneJS; make build/Pxtone.js)
-	cp PxtoneJS/build/Pxtone.js .
+	cp PxtoneJS/build/Pxtone.js build
 
 clean:
 	(cd pxtnDecoder; make clean)
 	(cd PxtoneJS; make clean)
-	rm -rf emDecoder.wasm
-	rm -rf pxtnDecoder.js
-	rm -rf Pxtone.js
+	rm -rf build
 
-.PHONY: pxtnDecoder.js emDecoder.wasm Pxtone.js
+.PHONY: build/static build/all build/pxtnDecoder.js build/emDecoder.wasm build/Pxtone.js
