@@ -144,12 +144,18 @@ const updateScale = (_e) => myPlayerCanvas.setScale(scaleSelect.checked ? 2 : 1)
 scaleSelect.addEventListener("input", updateScale);
 updateScale(null);
 
-async function reader$onload() {
+// input Pxtone Collage file
+// file is ArrayBuffer
+export let loadFile = async function (file, filename) {
+  pxtnName.innerHTML = filename;
+  pxtnTitle.innerHTML = "&nbsp;";
+  pxtnComment.innerHTML = "&nbsp;";
+
   loadingFile = true;
   await currentAudioPlayer.release();
   updateButtonDisplay();
 
-  let {stream, master, units, evels, data} = await ctx.decodePxtoneStream(this.result);
+  let {stream, master, units, evels, data} = await ctx.decodePxtoneStream(file);
 
   pxtnTitle.innerHTML = escapeHTML(data.title) || "no name";
   pxtnComment.innerHTML = escapeHTML(data.comment).replace(/[\n\r]/g, "<br>") || "no comment";
@@ -163,15 +169,4 @@ async function reader$onload() {
   myPlayerCanvas.setData(units, evels, master);
   loadingFile = false;
   updateButtonDisplay();
-}
-
-// input Pxtone Collage file
-export let loadFile = function(file, filename) {
-  pxtnName.innerHTML = filename;
-  pxtnTitle.innerHTML = "&nbsp;";
-  pxtnComment.innerHTML = "&nbsp;";
-
-  const reader = new FileReader();
-  reader.addEventListener("load", reader$onload);
-  reader.readAsArrayBuffer(file);
 }

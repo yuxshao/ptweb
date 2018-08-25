@@ -112,7 +112,11 @@
   const file = document.querySelector("#fileDrop");
   file.addEventListener("change", () => {
     const pxtnFile = file.files[0];
-    loadFile(pxtnFile, pxtnFile.name);
+    const reader = new FileReader();
+    reader.addEventListener("load", function () {
+      loadFile(this.result, pxtnFile.name);
+    });
+    reader.readAsArrayBuffer(pxtnFile);
   });
 </script>
 </body>
