@@ -4,9 +4,11 @@ set -o xtrace
 git checkout master
 git checkout -B gh-pages
 make
-rm -rf .gitignore .gitmodules
-git add Pxtone.js pxtnDecoder.js emDecoder.wasm .gitmodules .gitignore
+rm .gitmodules
+cp -r build/* .
+git add $(ls build) .gitmodules
 git commit -m "update gh-pages"
 git push -f
 git checkout master
+rm -rf $(ls build)
 make
