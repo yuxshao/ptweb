@@ -3,7 +3,7 @@
 <div align="center"> Pxtone web player with visuals. Work in progress.</div>
 
 ## Demo
-Try it out [here](https://yuxshao.github.io/ptweb/)!
+Check out [pxtone web](https://www.ptweb.me/) for a full-fledged platform for sharing pxtone pieces using this player! A slightly outdated demo for playing local files is available [here](https://yuxshao.github.io/ptweb/).
 
 ## Install
 Make sure Emscripten is installed. I have 1.38.8 myself. Install all `js` dependencies in the submodules:
