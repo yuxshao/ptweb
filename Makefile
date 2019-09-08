@@ -4,7 +4,7 @@ build:
 	mkdir build
 
 build/static: build
-	cp -r static/* build
+	./build_static.sh
 
 build/pxtnDecoder: build build/pxtnDecoder.js build/emDecoder.wasm
 
