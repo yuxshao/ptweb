@@ -12,11 +12,14 @@ let currentAudioPlayer = new AudioPlayer(null, ctx);
 let progressBar = document.getElementById('songProgress');
 
 let myPlayerCanvas = (() => {
-  let player    = document.getElementById('player');
-  let fixed     = document.getElementById('playerFixed');
-  let fixedMenu = document.getElementById('playerFixedMenu');
-  let menu      = document.getElementById('playerMenu');
-  return new PlayerCanvas(player, fixed, menu, fixedMenu, progressBar);
+  let dom = {
+    'canvas':          document.getElementById('playerBody'),
+    'canvasFixed':     document.getElementById('playerFixed'),
+    'canvasMenu':      document.getElementById('playerMenu'),
+    'canvasFixedMenu': document.getElementById('playerFixedMenu'),
+    'progress':        progressBar,
+  }
+  return new PlayerCanvas(dom);
 })();
 myPlayerCanvas.getTime = currentAudioPlayer.getCurrentTime;
 myPlayerCanvas.audioSeek = currentAudioPlayer.seek;
@@ -31,6 +34,7 @@ pxtone.decoder = new Worker(window.DECODER_URL);
 ctx.decodePxtoneStream = pxtone.decodePxtoneStream.bind(pxtone, ctx);
 
 // DOM
+const wholePlayer     = document.querySelector("#playerContainer");
 const playBtn         = document.querySelector(".playerButton");
 const stopBtn         = document.querySelector(".stopButton");
 const volumeSlider    = document.querySelector("#volumeSlider");
@@ -95,6 +99,12 @@ const playerStateChange = async () => {
   playBtn.classList.remove("disabled");
 };
 playBtn.addEventListener("click", playerStateChange);
+wholePlayer.addEventListener("keypress", function (e) {
+  if (e.key === ' ') {
+    e.preventDefault();
+    playerStateChange();
+  }
+});
 
 const playerStop = async () => {
   if (stopBtn.classList.contains("disabled")) return;
@@ -112,6 +122,34 @@ const progressClick = (e) => {
 };
 progressBar.addEventListener("click", progressClick);
 
+// fullscreen toggle
+let toggleFullscreenBtn = document.getElementById('toggleFullscreenBtn');
+let switchToFullBtn = document.getElementById("switchToFull");
+let switchToSmallBtn = document.getElementById("switchToSmall");
+const postToggleCheck = () => {
+  if (wholePlayer.classList.contains("fullscreen")) {
+    switchToFullBtn.style.display = 'none';
+    switchToSmallBtn.style.display = 'block';
+  }
+  else {
+    switchToFullBtn.style.display = 'block';
+    switchToSmallBtn.style.display = 'none';
+  }
+  myPlayerCanvas.updateCanvasDims();
+}
+const switchToFull = (_e) => {
+  wholePlayer.classList.add("fullscreen");
+  postToggleCheck();
+}
+const switchToSmall = (_e) => {
+  wholePlayer.classList.remove("fullscreen");
+  postToggleCheck();
+}
+if (switchToFullBtn !== null)
+  switchToFullBtn.addEventListener("click", switchToFull);
+if (switchToSmallBtn !== null)
+  switchToSmallBtn.addEventListener("click", switchToSmall);
+
 // volume slider
 const updateVolume = (_e) => {
   currentAudioPlayer.setVolume(volumeSlider.value);
@@ -119,7 +157,7 @@ const updateVolume = (_e) => {
 }
 volumeSlider.addEventListener("input", updateVolume);
 
-// display: zoom and snap and scale
+// draw options: zoom and snap and scale
 const updateZoom = (_e) => myPlayerCanvas.setZoom(zoomSelect.value);
 zoomSelect.addEventListener("input", updateZoom);
 zoomSelect.addEventListener("change", updateZoom);
@@ -144,9 +182,24 @@ const updateScale = (_e) => myPlayerCanvas.setScale(scaleSelect.checked ? 2 : 1)
 scaleSelect.addEventListener("input", updateScale);
 updateScale(null);
 
+const drawOptionInput = document.querySelector("#id_draw_options");
+myPlayerCanvas.onDrawOptionUpdate = function (opt) {
+  zoomSelect.value    = opt.zoom;
+  keyZoomSelect.value = opt.key_zoom;
+  darkSelect.checked  = opt.dark;
+  snapSelect.value    = opt.snap;
+  scaleSelect.checked = (opt.scale > 1);
+  if (drawOptionInput !== null) drawOptionInput.value = JSON.stringify(opt);
+}
+myPlayerCanvas.applyDrawOptions();
+
+export let loadDrawOptions = async function (opt) {
+  myPlayerCanvas.setDrawOptions(opt);
+}
+
 // input Pxtone Collage file
 // file is ArrayBuffer
-export let loadFile = async function (file, filename) {
+export let loadFile = async function (file, filename, reset_draw=false) {
   pxtnName.innerHTML = filename;
   pxtnTitle.innerHTML = "&nbsp;";
   pxtnComment.innerHTML = "&nbsp;";
@@ -161,12 +214,13 @@ export let loadFile = async function (file, filename) {
   pxtnComment.innerHTML = escapeHTML(data.comment).replace(/[\n\r]/g, "<br>") || "no comment";
 
   currentAudioPlayer = new AudioPlayer(stream, ctx);
+  currentAudioPlayer.onspuriousstart = updateButtonDisplay;
   updateVolume(null);
 
   myPlayerCanvas.getTime = currentAudioPlayer.getCurrentTime;
   myPlayerCanvas.audioSeek = currentAudioPlayer.seek;
   myPlayerCanvas.isStarted = currentAudioPlayer.isStarted;
-  myPlayerCanvas.setData(units, evels, master);
+  myPlayerCanvas.setData(units, evels, master, reset_draw);
   loadingFile = false;
   updateButtonDisplay();
 }
