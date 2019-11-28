@@ -109,14 +109,6 @@ wholePlayer.addEventListener("keypress", function (e) {
   }
 });
 
-document.body.addEventListener("keypress", function (e) {
-  if (e.key === 'b') {
-    console.log("Toggling mute");
-    currentAudioPlayer.toggleMute(0);
-    currentAudioPlayer.toggleMute(1);
-  }
-});
-
 const playerStop = async () => {
   if (stopBtn.classList.contains("disabled")) return;
   stopBtn.classList.add("disabled");
