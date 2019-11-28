@@ -2,7 +2,7 @@
 
 import { Mutex } from "./lib/Mutex.js"
 
-const BUFFER_DURATION_DEFAULT = 1.6;
+const BUFFER_DURATION_DEFAULT = 0.3;
 
 function emptyStream(ctx) {
   return {
@@ -110,6 +110,10 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
     await stream.release();
   }
 
+  let setMute = async function(unitNum, mute) {
+    stream.setMute(unitNum, mute);
+  }
+
   let guarded = (f) => {
     return async (...args) => {
       const release = await mutex.acquire();
@@ -121,6 +125,7 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
   this.pause   = guarded(pause);
   this.resume  = guarded(resume);
   this.release = guarded(release);
+  this.setMute = guarded(setMute);
   this.seek    = guarded(seek);
 
   this.setVolume = function (volume) {

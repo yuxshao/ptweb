@@ -1,3 +1,6 @@
+// Input: toggle key on right area in hide mode
+// Output: show key on right area in hide mode
+// Load with mute doesn't screw up settings
 "use strict";
 
 import { SortedList } from "./lib/sorted-list.js"
@@ -51,6 +54,8 @@ unitbars.regular_rect   = { x: 16, y: 48, w: 128, h: 16  };
 unitbars.selected_rect  = { x: 16, y: 64, w: 128, h: 16  };
 unitbars.nothing_rect   = { x: 16, y: 80, w: 128, h: 16  };
 
+unitbars.speaker_rect   = { x: 52, y: 96, w: 16,  h: 16  };
+
 unitbars.src = window.RESOURCE_URL + '/unitbars.png';
 const MENU_WIDTH = unitbars.menu_rect_unit.w;
 const COLLAPSED_MENU_WIDTH = unitbars.menu_rect_arrc.w;
@@ -90,9 +95,9 @@ function middleSnap(x) { return Math.floor(x) + 0.5; }
 
 let getColor = getColorGen(DEFAULT_VELOCITY, DEFAULT_VOLUME);
 
-export let PlayerCanvas = function (dom) {
+export let PlayerCanvas = function (dom, setMuteCallback) {
   this.dom = dom;
-  console.log(dom);
+  this.setMuteCallback = setMuteCallback;
 
   this.lastDrawState = {}; // for avoiding redrawing the same thing
   this.getTime = () => 0;
@@ -114,12 +119,13 @@ function rectContains(rect, point) {
           rect.x + rect.w > point.x && rect.y + rect.h > point.y);
 }
 
-let unitTabRect = { x:44, y:0, w:39, h:15 };
-let keyTabRect  = { x:83, y:0, w:61, h:15 };
-let arrTabRect  = { x:0,  y:0, w:44, h:15 };
-let arrcTabRect = { x:0,  y:0, w:36, h:15 };
-let keyToggleRect  = { x:1,  y:1, w:18, h:14 };
-let unitToggleRect = { x:19, y:1, w:18, h:14 };
+let unitTabRect    = { x:44, y:0, w:39, h:15 };
+let keyTabRect     = { x:83, y:0, w:61, h:15 };
+let arrTabRect     = { x:0,  y:0, w:44, h:15 };
+let arrcTabRect    = { x:0,  y:0, w:36, h:15 };
+let muteToggleRect = { x:2,  y:0, w:13, h:16 };
+let keyToggleRect  = { x:18, y:0, w:18, h:16 };
+let pinToggleRect  = { x:36, y:0, w:91, h:16 };
 
 PlayerCanvas.prototype.addListeners = function() {
   window.addEventListener('resize', () => this.updateCanvasDims(), false);
@@ -196,9 +202,12 @@ PlayerCanvas.prototype.handleToggle = function (e, coord, pinned) {
       if (e.button === 0) opt.key = !opt.key;
       else if (e.button === 2 && opt.key) opt.color = (opt.color + 1) % getColor.length;
     }
-    if (rectContains(unitToggleRect, coord)) {
-      if (e.button === 0) opt.pinned = !opt.pinned;
-      else if (e.button === 2 && opt.pinned) opt.color = (opt.color + 1) % getColor.length;
+    if (rectContains(pinToggleRect, coord) && e.button == 0) {
+      opt.pinned = !opt.pinned;
+    }
+    if (rectContains(muteToggleRect, coord) && e.button == 0) {
+      opt.muted = !opt.muted;
+      this.setMuteCallback(i, opt.muted);
     }
     coord.y -= unitbars.regular_rect.h;
   }
@@ -225,7 +234,8 @@ PlayerCanvas.prototype.setData = function(units, evels, master, clear_unit=false
       this.drawOptions.unit[i] = {
         'color': (i * 3) % getColor.length,
         'key': true,
-        'pinned': false
+        'pinned': false,
+        'muted': false
       }
   }
 
@@ -406,8 +416,6 @@ PlayerCanvas.prototype.drawUnitList = function (ctx, height, currBeat, pinned) {
   ctx.translate(unitbars.side_rect.w, 0);
   let numRenderedRows = 0;
   ctx.font = "11px sans-serif";
-  let showXoff = 3;
-  let pinnedXoff = (this.drawOptions.collapsed_menu ? showXoff : 21);
   for (i = 0; i < this.units.length; ++i) {
     if (pinned !== null && this.drawOptions.unit[i].pinned !== pinned) continue;
     numRenderedRows++;
@@ -422,9 +430,9 @@ PlayerCanvas.prototype.drawUnitList = function (ctx, height, currBeat, pinned) {
     let vol = this.volumeAt(i, currClock);
     let is_playing = playingOffset !== -1;
     if (this.drawOptions.unit[i].key)
-      this.drawToggle(ctx, showXoff, 2, i, is_playing, vel, vol, pinned === true);
-    if (this.drawOptions.unit[i].pinned)
-      this.drawToggle(ctx, pinnedXoff, 2, i, is_playing, vel, vol, pinned === true);
+      this.drawToggle(ctx, 20, 2, i, is_playing, vel, vol, pinned === true);
+    if (!this.drawOptions.unit[i].muted)
+      drawImageRect(ctx, unitbars, unitbars.speaker_rect, 1, 0);
 
     ctx.fillText(this.units[i], UNIT_TEXT_PADDING, unitbars.regular_rect.h / 2);
     ctx.translate(0, unitbars.regular_rect.h);

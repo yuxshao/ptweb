@@ -18,8 +18,11 @@ let myPlayerCanvas = (() => {
     'canvasMenu':      document.getElementById('playerMenu'),
     'canvasFixedMenu': document.getElementById('playerFixedMenu'),
     'progress':        progressBar,
-  }
-  return new PlayerCanvas(dom);
+  };
+  let setMuteCallback = (unitNum, mute) => {
+    currentAudioPlayer.setMute(unitNum, mute);
+  };
+  return new PlayerCanvas(dom, setMuteCallback);
 })();
 myPlayerCanvas.getTime = currentAudioPlayer.getCurrentTime;
 myPlayerCanvas.audioSeek = currentAudioPlayer.seek;
@@ -103,6 +106,14 @@ wholePlayer.addEventListener("keypress", function (e) {
   if (e.key === ' ') {
     e.preventDefault();
     playerStateChange();
+  }
+});
+
+document.body.addEventListener("keypress", function (e) {
+  if (e.key === 'b') {
+    console.log("Toggling mute");
+    currentAudioPlayer.toggleMute(0);
+    currentAudioPlayer.toggleMute(1);
   }
 });
 
