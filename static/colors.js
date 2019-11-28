@@ -26,7 +26,8 @@ let colors = [
 ];
 
 function colToStr(c, a=1) {
-  return "rgba(" + c.r + ", " + c.g + ", " + c.b + ", " + a + ")";
+  // need to round for older webkit
+  return "rgba(" + Math.round(c.r) + ", " + Math.round(c.g) + ", " + Math.round(c.b) + ", " + a + ")";
 }
 
 function colLerp(c1, c2, p) {
