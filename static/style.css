@@ -19,19 +19,6 @@ html, body { height:100%; width:100%; font-family: sans-serif; font-size: 10pt; 
   display:none;
 }
 
-output {
-  display: block;
-  width:100%;
-  float: left;
-  padding: 20px;
-  box-sizing: border-box;
-  margin: 10px 10px 10px 0px;
-}
-
-output > p, output > .comment {
-  margin-left: 3em;
-}
-
 .button.disabled {
   background:#00003E;
 }
@@ -182,7 +169,6 @@ footer {
 }
 
 #fixedContainer { position: sticky; top:0; z-index:2; }
-#playerFixed, #player         { position:absolute; right:0; }
 #playerFixedMenu, #playerMenu { position:sticky;   left:0; }
 
 #playerMenu          { z-index:1; }

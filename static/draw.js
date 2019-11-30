@@ -48,6 +48,7 @@ unitbars.menu_rect_key  = { x: 0,  y: 16, w: 144, h: 16  };
 unitbars.menu_rect_arrc = { x: 16, y: 96,  w: 36, h: 16  };
 
 unitbars.tab_rect       = { x: 0,  y: 32, w: 144, h: 16  };
+unitbars.mute_lock_rect = { x: 80, y: 96, w: 32,  h: 16  };
 unitbars.side_rect      = { x: 0,  y: 48, w: 16,  h: 160 };
 
 unitbars.regular_rect   = { x: 16, y: 48, w: 128, h: 16  };
@@ -70,6 +71,32 @@ function imagesLoaded() {
 function drawImageRect(ctx, res, rect, x, y) {
   ctx.drawImage(res, rect.x, rect.y, rect.w, rect.h, x, y, rect.w, rect.h);
 }
+
+/*function drawSpeaker(ctx, x, y, color, playing, vel, vol) {
+  drawImageRect(ctx, unitbars, unitbars.speaker_rect, x, y);
+}*/
+
+let drawSpeaker = (function () {
+  var tempCanvas = document.createElement('canvas');
+  tempCanvas.width  = 16;
+  tempCanvas.height = 32;
+  return function (finalCtx, x, y, color, playing, vel, vol) {
+    let ctx = tempCanvas.getContext("2d");
+    ctx.fillStyle = color.shadow(playing, vel, vol);
+    ctx.fillRect(0, 0, 16, 16);
+
+    ctx.fillStyle = color.note(playing, vel, vol);
+    ctx.fillRect(0, 16, 16, 16);
+
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.drawImage(unitbars, 52, 96, 16, 32, 0, 0, 16, 32);
+    ctx.globalCompositeOperation = 'source-over';
+
+    finalCtx.drawImage(tempCanvas, 0, 0,  16, 16, x, y, 16, 16);
+    finalCtx.drawImage(tempCanvas, 0, 16, 16, 16, x, y, 16, 16);
+
+  }
+})();
 
 function drawNum(ctx, res, num, xr, y) {
   if (num < 0) throw "cannot print negative number";
@@ -95,13 +122,13 @@ function middleSnap(x) { return Math.floor(x) + 0.5; }
 
 let getColor = getColorGen(DEFAULT_VELOCITY, DEFAULT_VOLUME);
 
-export let PlayerCanvas = function (dom, setMuteCallback) {
+export let PlayerCanvas = function (dom) {
   this.dom = dom;
-  this.setMuteCallback = setMuteCallback;
 
   this.lastDrawState = {}; // for avoiding redrawing the same thing
   this.getTime = () => 0;
   this.isStarted = () => false;
+  this.onMuteToggle = (_) => null;
 
   this.initDrawOptions();
   this.setData([""], [], DEFAULT_MASTER);
@@ -205,9 +232,10 @@ PlayerCanvas.prototype.handleToggle = function (e, coord, pinned) {
     if (rectContains(pinToggleRect, coord) && e.button == 0) {
       opt.pinned = !opt.pinned;
     }
-    if (rectContains(muteToggleRect, coord) && e.button == 0) {
+    let muteLocked = this.drawOptions.mute_lock;
+    if (rectContains(muteToggleRect, coord) && e.button == 0 && !muteLocked) {
       opt.muted = !opt.muted;
-      this.setMuteCallback(i, opt.muted);
+      this.onMuteToggle([{ unitNum: i, isMuted: opt.muted }]);
     }
     coord.y -= unitbars.regular_rect.h;
   }
@@ -271,9 +299,20 @@ PlayerCanvas.prototype.initDrawOptions = function () {
     'unit': [], 'view': 'unit',
     'zoom': 1, 'key_zoom': 'small',
     'snap': 'meas', 'dark': false, 'scale': 1,
-    'collapsed_menu': false,
+    'collapsed_menu': false, 'mute_lock': false
   }
   this.onDrawOptionUpdate = () => null;
+}
+
+let getMuteSettings = function(drawOptions) {
+  if (drawOptions.unit === undefined) return [];
+  return drawOptions.unit
+    .filter(opt => opt.hasOwnProperty("muted"))
+    .map((opt, unitNum) => { return { unitNum, isMuted: opt.muted }; });
+}
+
+PlayerCanvas.prototype.getMuteSettings = function() {
+  return getMuteSettings(this.drawOptions);
 }
 
 PlayerCanvas.prototype.setDrawOptions = function(opt) {
@@ -285,6 +324,13 @@ PlayerCanvas.prototype.setDrawOptions = function(opt) {
       for (const i in opt[key]) this.drawOptions[key][i] = opt[key][i];
     }
   }
+  // The mutes are set, we respond to that here. Note that some onMuteToggles
+  // might fire even if nothing was changed (no reason, I'm just a little lazy)
+  {
+    let muteSettings = getMuteSettings(opt);
+    if (muteSettings.length > 0) this.onMuteToggle(muteSettings);
+  }
+
   this.applyDrawOptions();
 }
 
@@ -309,6 +355,7 @@ PlayerCanvas.prototype.setDark    = setDrawOption('dark');
 PlayerCanvas.prototype.setScale   = setDrawOption('scale');
 PlayerCanvas.prototype.setView    = setDrawOption('view');
 PlayerCanvas.prototype.setCollapsedMenu = setDrawOption('collapsed_menu');
+PlayerCanvas.prototype.setMuteLock = setDrawOption('mute_lock');
 
 PlayerCanvas.prototype.getMenuWidth = function () {
   if (this.drawOptions.collapsed_menu) return COLLAPSED_MENU_WIDTH;
@@ -428,11 +475,11 @@ PlayerCanvas.prototype.drawUnitList = function (ctx, height, currBeat, pinned) {
     let offsetBoost = Math.max(0, (128 - DEFAULT_VELOCITY) * 2 - playingOffset/4);
     let vel = Math.min(128, this.velocityAt(i, currClock) + offsetBoost);
     let vol = this.volumeAt(i, currClock);
-    let is_playing = playingOffset !== -1;
+    let is_playing = (playingOffset !== -1 && !this.drawOptions.unit[i].muted && this.isStarted());
     if (this.drawOptions.unit[i].key)
       this.drawToggle(ctx, 20, 2, i, is_playing, vel, vol, pinned === true);
     if (!this.drawOptions.unit[i].muted)
-      drawImageRect(ctx, unitbars, unitbars.speaker_rect, 1, 0);
+      drawSpeaker(ctx, 1, 0, this.getUnitColor(i), is_playing, vel, vol);
 
     ctx.fillText(this.units[i], UNIT_TEXT_PADDING, unitbars.regular_rect.h / 2);
     ctx.translate(0, unitbars.regular_rect.h);
@@ -576,7 +623,7 @@ function clamp(min, x, max) { return Math.max(Math.min(x, max), min); }
 // play_{start,end} correspond to start/end of press
 // start,end correspond to bounds of this rectangle (so maybe up to next key change)
 PlayerCanvas.prototype.drawKeyboardNote = function(ctx, started,
-    play_start, play_end, highlight, unit_no, key, start, end, current) {
+    play_start, play_end, highlight, unit_no, key, start, end, current, muted) {
   let clockPerPx = this.clockPerPx();
 
   let offset = this.keyboardKeyHeight * (KEYBOARD_BASE_SHIFT + (DEFAULT_KEY - key) / 256);
@@ -586,7 +633,7 @@ PlayerCanvas.prototype.drawKeyboardNote = function(ctx, started,
   // considered taking min(start vol, end vol) if not playing but that makes
   // some notes with long attack/decay show up weird
   let vol = this.volumeAt(unit_no, clamp(play_start, current, play_end-1));
-  let playing = (current >= play_start && current < play_end);
+  let playing = (current >= play_start && current < play_end && !muted);
   ctx.fillStyle = this.getUnitColor(unit_no).key(playing, vel, vol);
   ctx.fillRect(start / clockPerPx, y, (end - start) / clockPerPx, this.keyboardNoteHeight);
   if (highlight) {
@@ -598,7 +645,8 @@ PlayerCanvas.prototype.drawKeyboardNote = function(ctx, started,
 function drawKeyboardNoteForDeferredQueue(data) {
   data.obj.drawKeyboardNote(data.ctx, data.obj.isStarted(),
     data.play_start, data.play_end, data.highlight,
-    data.unit_no, data.currentKey, data.noteStart, data.noteEnd, data.currClock);
+    data.unit_no, data.currentKey, data.noteStart, data.noteEnd, data.currClock,
+    data.muted);
 }
 
 PlayerCanvas.prototype.drawKeyboard = function(ctx, canvasOffsetX, currBeat, dimensions) {
@@ -617,7 +665,7 @@ PlayerCanvas.prototype.drawKeyboard = function(ctx, canvasOffsetX, currBeat, dim
   let drawQueue = new DeferredQueue(drawKeyboardNoteForDeferredQueue);
   // use (additive-like) symmetric blend mode so draw order doesn't matter
   // only in dark mode, as this blend mode makes the notes look like lights
-  if (this.drawOptions.dark) ctx.globalCompositeOperation = 'screen'; 
+  if (this.drawOptions.dark) ctx.globalCompositeOperation = 'screen';
   else ctx.globalCompositeOperation = 'source-over';
 
   for (let unit_no = 0; unit_no < unit_states.length; ++unit_no) {
@@ -638,7 +686,8 @@ PlayerCanvas.prototype.drawKeyboard = function(ctx, canvasOffsetX, currBeat, dim
       drawQueue.fill(lastQueueId, {
         'obj': this, 'ctx': ctx, 'play_start': play_start, 'play_end': play_end,
         'highlight': highlight, 'unit_no': unit_no, 'currClock': currClock,
-        'currentKey': currentKey, 'noteStart': noteStart, 'noteEnd': end
+        'currentKey': currentKey, 'noteStart': noteStart, 'noteEnd': end,
+        'muted': this.drawOptions.unit[unit_no].muted
       });
 
     unit_states[unit_no] = {
@@ -717,7 +766,7 @@ PlayerCanvas.prototype.drawUnitRows = function(ctx, canvasOffsetX, currBeat, dim
 
   ctx.save();
   for (let unit_no = 0; unit_no < this.units.length; ++unit_no) {
-    if (pinned !== null && this.drawOptions.unit[unit_no].pinned !== pinned) continue; 
+    if (pinned !== null && this.drawOptions.unit[unit_no].pinned !== pinned) continue;
     // row background
     ctx.fillStyle = "#400070";
     ctx.fillRect(canvasOffsetX, 1, dimensions.w, 15);
@@ -728,7 +777,9 @@ PlayerCanvas.prototype.drawUnitRows = function(ctx, canvasOffsetX, currBeat, dim
     let rightIndex = Math.min(notes.firstPositionOf(rightBound), notes.length);
     for (let i = leftIndex; i < rightIndex; ++i) {
       let e = this.evels[notes[i]];
-      let playing = (this.isStarted() && e.clock <= currClock && e.clock + e.value > currClock);
+      let muted = this.drawOptions.unit[unit_no].muted;
+      let playing = (this.isStarted() && !muted &&
+                     e.clock <= currClock && e.clock + e.value > currClock);
       ctx.fillStyle = this.getUnitColor(unit_no).note(playing,
         this.velocityAt(e.unit_no, currClock), this.volumeAt(e.unit_no, currClock));
       drawUnitNote(ctx, e.clock / clockPerPx, 8, e.value / clockPerPx);
@@ -886,6 +937,8 @@ PlayerCanvas.prototype.draw = function () {
     // top-left tabs
     drawImageRect(ctx, unitbars, rect, 0, 0);
     drawImageRect(ctx, unitbars, unitbars.tab_rect, 0, rect.h);
+    if (this.drawOptions.mute_lock)
+      drawImageRect(ctx, unitbars, unitbars.mute_lock_rect, 0, rect.h);
   });
 }
 

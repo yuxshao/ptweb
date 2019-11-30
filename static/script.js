@@ -19,10 +19,7 @@ let myPlayerCanvas = (() => {
     'canvasFixedMenu': document.getElementById('playerFixedMenu'),
     'progress':        progressBar,
   };
-  let setMuteCallback = (unitNum, mute) => {
-    currentAudioPlayer.setMute(unitNum, mute);
-  };
-  return new PlayerCanvas(dom, setMuteCallback);
+  return new PlayerCanvas(dom);
 })();
 myPlayerCanvas.getTime = currentAudioPlayer.getCurrentTime;
 myPlayerCanvas.audioSeek = currentAudioPlayer.seek;
@@ -37,7 +34,7 @@ pxtone.decoder = new Worker(window.DECODER_URL);
 ctx.decodePxtoneStream = pxtone.decodePxtoneStream.bind(pxtone, ctx);
 
 // DOM
-const wholePlayer     = document.querySelector("#playerContainer");
+const wholePlayer     = document.querySelector("#player");
 const playBtn         = document.querySelector(".playerButton");
 const stopBtn         = document.querySelector(".stopButton");
 const volumeSlider    = document.querySelector("#volumeSlider");
@@ -46,6 +43,7 @@ const zoomSelect      = document.querySelector("#zoomSelect");
 const keyZoomSelect   = document.querySelector("#keyZoomSelect");
 const snapSelect      = document.querySelector("#snapSelect");
 const scaleSelect     = document.querySelector("#scaleSelect");
+const muteLock        = document.querySelector("#muteLock");
 const [pxtnName, pxtnTitle, pxtnComment] = [
   document.querySelector("output .name"),
   document.querySelector("output .title"),
@@ -112,7 +110,7 @@ wholePlayer.addEventListener("keypress", function (e) {
 const playerStop = async () => {
   if (stopBtn.classList.contains("disabled")) return;
   stopBtn.classList.add("disabled");
-  if (currentAudioPlayer.isStarted()) await stopAudio();
+  await stopAudio();
   stopBtn.classList.remove("disabled");
   updateButtonDisplay();
 }
@@ -132,10 +130,10 @@ let switchToSmallBtn = document.getElementById("switchToSmall");
 const postToggleCheck = () => {
   if (wholePlayer.classList.contains("fullscreen")) {
     switchToFullBtn.style.display = 'none';
-    switchToSmallBtn.style.display = 'block';
+    switchToSmallBtn.style.display = 'flex';
   }
   else {
-    switchToFullBtn.style.display = 'block';
+    switchToFullBtn.style.display = 'flex';
     switchToSmallBtn.style.display = 'none';
   }
   myPlayerCanvas.updateCanvasDims();
@@ -185,6 +183,12 @@ const updateScale = (_e) => myPlayerCanvas.setScale(scaleSelect.checked ? 2 : 1)
 scaleSelect.addEventListener("input", updateScale);
 updateScale(null);
 
+if (muteLock !== null) {
+  muteLock.addEventListener('change', function() {
+    myPlayerCanvas.setMuteLock(this.checked);
+  });
+}
+
 const drawOptionInput = document.querySelector("#id_draw_options");
 myPlayerCanvas.onDrawOptionUpdate = function (opt) {
   zoomSelect.value    = opt.zoom;
@@ -192,6 +196,7 @@ myPlayerCanvas.onDrawOptionUpdate = function (opt) {
   darkSelect.checked  = opt.dark;
   snapSelect.value    = opt.snap;
   scaleSelect.checked = (opt.scale > 1);
+  if (muteLock !== null && opt.mute_lock !== null) muteLock.checked = opt.mute_lock;
   if (drawOptionInput !== null) drawOptionInput.value = JSON.stringify(opt);
 }
 myPlayerCanvas.applyDrawOptions();
@@ -202,7 +207,7 @@ export let loadDrawOptions = async function (opt) {
 
 // input Pxtone Collage file
 // file is ArrayBuffer
-export let loadFile = async function (file, filename, reset_draw=false) {
+export let loadFile = async function (file, filename, reset_draw, buffer_size) {
   pxtnName.innerHTML = filename;
   pxtnTitle.innerHTML = "&nbsp;";
   pxtnComment.innerHTML = "&nbsp;";
@@ -216,13 +221,21 @@ export let loadFile = async function (file, filename, reset_draw=false) {
   pxtnTitle.innerHTML = escapeHTML(data.title) || "no name";
   pxtnComment.innerHTML = escapeHTML(data.comment).replace(/[\n\r]/g, "<br>") || "no comment";
 
-  currentAudioPlayer = new AudioPlayer(stream, ctx);
+  currentAudioPlayer = new AudioPlayer(stream, ctx, buffer_size);
+
+  // Mute setting is here because of a potential race: both the draw options
+  // and audio player have to be loaded.
+  myPlayerCanvas.onMuteToggle = currentAudioPlayer.setMute;
+  currentAudioPlayer.setMute(myPlayerCanvas.getMuteSettings());
+
   currentAudioPlayer.onspuriousstart = updateButtonDisplay;
   updateVolume(null);
 
   myPlayerCanvas.getTime = currentAudioPlayer.getCurrentTime;
   myPlayerCanvas.audioSeek = currentAudioPlayer.seek;
-  myPlayerCanvas.isStarted = currentAudioPlayer.isStarted;
+  myPlayerCanvas.isStarted = function () {
+    return currentAudioPlayer.getCurrentTime() > 0;
+  }
   myPlayerCanvas.setData(units, evels, master, reset_draw);
   loadingFile = false;
   updateButtonDisplay();

@@ -1,6 +1,8 @@
 #player p, #player canvas {
   margin: 0; padding: 0; border: 0;
   vertical-align:bottom;
+  image-rendering:pixelated;
+  image-rendering:optimizeSpeed;
 }
 
 .fullscreen {
@@ -181,11 +183,22 @@ input[type=range]::-moz-range-thumb {
   padding: 10px 0px;
 }
 
-#fixedContainer { position: sticky; top:0; z-index:2; }
-#playerFixed, #playerBody { position:absolute; right:0; }
-#playerFixedMenu, #playerMenu { position:sticky;   left:0; }
+#fixedContainer {
+  position:-webkit-sticky;
+  position: sticky;
+  top:0;
+  z-index:2;
+}
 
-#playerMenu          { z-index:1; }
+#playerFixed, #playerBody { position:absolute; right:0; }
+
+#playerFixedMenu, #playerMenu {
+  position:-webkit-sticky;
+  position:sticky;
+  left:0;
+}
+
+#playerMenu          { z-index:1; resize:horizontal; }
 #playerFixedMenu     { z-index:3; }
 #controlBarContainer { z-index:4; }
 
@@ -209,6 +222,7 @@ input[type=range]::-moz-range-thumb {
 }
 
 #controlBarContainer {
+  position:-webkit-sticky;
   position:sticky;
   flex-direction:column;
   display:flex;
