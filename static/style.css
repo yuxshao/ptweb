@@ -7,144 +7,14 @@ html, body, input, div, p, canvas {
 
 html, body { height:100%; width:100%; font-family: sans-serif; font-size: 10pt; }
 
-#drop {
-  display:flex;
-  position: relative;
-  padding:0 15px;
-  margin: 0 5px 0px 10px;
-  align-items: center;
-}
-
-#drop + input[type="file"] {
-  display:none;
-}
 
 .button.disabled {
   background:#00003E;
 }
 
-.play > div {
-  width: 20px;
-  height: 20px;
-}
-
-.play > div::before {
-  position: absolute;
-  content: "";
-  transform: translate(3px, 1px);
-  display: block;
-  border-style: solid;
-  border-width: 8px 0 8px 15px;
-  border-color: transparent transparent transparent #00F080;
-}
-
-.play.disabled > div::before {
-  border-color: transparent transparent transparent #4E4B61;
-}
-
-.pause > div {
-  width: 20px;
-  height: 20px;
-}
-
-.pause > div::before {
-  position: absolute;
-  content: "";
-  transform: translateX(4px);
-  display: block;
-  width: 4px;
-  height: 18px;
-  background: #D2CA9C;
-}
-
-.pause > div::after {
-  position: absolute;
-  content: "";
-  transform: translateX(12px);
-  display: block;
-  width: 4px;
-  height: 18px;
-  background: #D2CA9C;
-}
-
-.playerButton, .stopButton {
-  padding: 0 10px;
-  align-items:center;
-}
-
-.pause.disabled > div::before, .pause.disabled > div::after, .stop.disabled > div::before {
-  background: #4E4B61;
-}
-
-.stop > div {
-  height:20px;
-  margin:auto;
-  align-items:center;
-}
-
-.stop > div::before {
-  content: "";
-  display: block;
-  width:  14px;
-  height: 14px;
-  background: #F00;
-}
-
 #songProgress { width:100%; }
 #volumeSlider { vertical-align: middle; }
 
-/* a bunch of slider and progress styling */
-progress::-webkit-progress-value {
-  -webkit-appearance:none;
-  height:0.6em;
-  background-color:#00F080;
-}
-
-input[type=range]::-moz-range-progress {
-  -moz-appearance:none;
-  height:0.6em;
-  background-color:#00F080;
-}
-
-progress::-moz-progress-bar {
-  -moz-appearance:none;
-  height:0.5em;
-  background-color:#00F080;
-}
-
-input[type=range]::-moz-range-track {
-  -moz-appearance:none;
-  height:0.6em;
-  background-color:#00003E;
-  border:1px solid #00003E;
-}
-
-progress::-webkit-progress-bar {
-  -moz-appearance:none;
-  -webkit-appearance:none;
-  height:0.5em;
-  background-color:#00003E;
-  border:1px solid #00003E;
-}
-
-progress {
-  -moz-appearance:none;
-  -webkit-appearance:none;
-  height:0.5em;
-  background-color:#00003E;
-  border:1px solid #00003E;
-}
-
-input[type=range] { -moz-appearance:none; }
-
-input[type=range]::-moz-range-thumb {
-  -moz-appearance:none;
-  border:1px solid;
-  border-color:#837E78 #00003E #00003E #837E78;
-  width:2px;
-  height:0.9em;
-  background:#4E4B61;
-}
 
 #volumeBox {
   align-items:center;
@@ -161,52 +31,12 @@ footer {
   padding:10px 0px;
 }
 
-.help {
-  margin:20px;
-  display:block;
-  float:left;
-  padding: 10px 0px;
-}
 
-#fixedContainer { position: sticky; top:0; z-index:2; }
-#playerFixedMenu, #playerMenu { position:sticky;   left:0; }
-
-#playerMenu          { z-index:1; }
-#playerFixedMenu     { z-index:3; }
-#controlBarContainer { z-index:4; }
 
 body {
   overflow-x: hidden;
   overflow-y: auto;
   position:relative;
-}
-
-#displayContainer {
-  background:#000010;
-  flex-grow:1;
-}
-
-#playerContainer{
-  display:flex; flex-direction:column;
-  flex-wrap: nowrap;
-  min-height:100%;
-}
-
-#mooBackground {
-  flex-grow:1;
-  align-self:stretch;
-  background:url('./res/moo.png');
-}
-
-#controlBarContainer {
-  position:sticky;
-  flex-direction:column;
-  display:flex;
-  bottom:0;
-}
-
-#controlBarContainer div {
-  display:flex;
 }
 
 #controlBar {
@@ -217,16 +47,6 @@ body {
   color:#9d9784;
   font-weight:bold;
   width:100%;
-}
-
-#controls > span[title] {
-  text-decoration:dotted underline;
-}
-
-#logoBox {
-  padding:0 10px;
-  height:92px;
-  align-items:center;
 }
 
 #controlBar button, .button {
