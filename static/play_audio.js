@@ -10,7 +10,8 @@ function emptyStream(ctx) {
     release: () => null,
     reset: (seek_seconds) => null,
     setMute: (_1, _2) => null,
-    getMute: (_) => false
+    getMute: (_) => false,
+    getSps: () => 44100
   };
 }
 
@@ -29,6 +30,7 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
   // player state initialized later down
   let is_suspended = null, startTime = null;
   stream = stream || emptyStream(ctx);
+  let bufferNumSamples = Math.round(buffer_duration * stream.getSps());
 
   // detach the event handlers that start the next chunk when stopping
   function clearBuffers() {
@@ -54,16 +56,17 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
       // this happen, but if it does, the computer is really struggling.
       // To make this sound, stream.next can take a chunk index and keep track
       // of skipped chunks.
-      let buffer = await stream.next(buffer_duration);
+      let buffer = await stream.next(bufferNumSamples);
       src.buffer = buffer;
 
       {
-        // console.log((time - ctx.currentTime) + "/" + buffer_duration + " = " + (100 * (time - ctx.currentTime) / buffer_duration) + "%");
-        let time = baseStartTime + chunkNum * buffer_duration;
+        let time = baseStartTime + chunkNum * bufferNumSamples / stream.getSps();
         let thisStartTime = Math.max(time, ctx.currentTime);
         let offset = thisStartTime - time;
         if (offset > 0) { console.log("Warning: buffer underrun (" + (offset * 1000) + "ms)"); }
-        if (offset >= buffer_duration) src.onended(null);
+
+        // We're so behind that when this chunk starts, it's already past its end time
+        if (offset * stream.getSps >= bufferNumSamples) src.onended(null);
         else {
           // I think there's a possibility of a race here. What if sources was
           // cleared while loading the buffer?
@@ -85,9 +88,9 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
   }
   // minStart prevents the displayed clock from backing up a bit when resuming
   let minStart = 0;
-  let stop = async function (seek_seconds = null) {
+  let stop = async function (seek_seconds = 0) {
     await pause();
-    await stream.reset(seek_seconds);
+    await stream.reset(Math.round(seek_seconds * stream.getSps()));
     startTime = ctx.currentTime - seek_seconds;
     minStart = seek_seconds;
     clearBuffers();
