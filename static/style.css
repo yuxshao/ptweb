@@ -1,3 +1,7 @@
+/* This CSS file and player-style.css have some overlap due to a bad workflow
+ * of mine where I'd edit player-style.css in a different repo and then try to
+ * migrate it back to this one.*/
+
 html, body, input, div, p, canvas {
   margin: 0;
   padding: 0;
@@ -30,8 +34,6 @@ footer {
   border: 1px 0 0 0 solid black;
   padding:10px 0px;
 }
-
-
 
 body {
   overflow-x: hidden;
