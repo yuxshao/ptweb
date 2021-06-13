@@ -100,7 +100,7 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
   let pause = async function () {
     is_suspended = true;
     // Need this since in webkit ctx.suspend may hang forever
-    if (ctx.state !== 'suspended')
+    if (ctx.state !== 'suspended') 
       await ctx.suspend();
   }
 
@@ -171,7 +171,7 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
   this.setVolume = function (volume) {
     let ampl = Math.pow(65, volume-1);
     if (volume < 0.05) ampl *= volume / 0.05;
-    gainNode.gain.setValueAtTime(ampl, ctx.currentTime);
+    gainNode.gain.setValueAtTime(ampl * 2, ctx.currentTime);
   }
 
   // initialize player state
