@@ -99,7 +99,9 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
 
   let pause = async function () {
     is_suspended = true;
-    await ctx.suspend();
+    // Need this since in webkit ctx.suspend may hang forever
+    if (ctx.state !== 'suspended')
+      await ctx.suspend();
   }
 
   let resume = async function () {
