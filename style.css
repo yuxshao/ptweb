@@ -1,0 +1,134 @@
+/* This CSS file and player-style.css have some overlap due to a bad workflow
+ * of mine where I'd edit player-style.css in a different repo and then try to
+ * migrate it back to this one.*/
+
+html, body, input, div, p, canvas {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  vertical-align:bottom;
+}
+
+html, body { height:100%; width:100%; font-family: sans-serif; font-size: 10pt; }
+
+
+.button.disabled {
+  background:#00003E;
+}
+
+#songProgress { width:100%; }
+#volumeSlider { vertical-align: middle; }
+
+
+#volumeBox {
+  align-items:center;
+}
+
+#controls > div { margin: 0 5px; }
+
+footer {
+  border-top:1px solid black;
+  margin:20px;
+  display:block; float:left;
+  clear: both;
+  border: 1px 0 0 0 solid black;
+  padding:10px 0px;
+}
+
+body {
+  overflow-x: hidden;
+  overflow-y: auto;
+  position:relative;
+}
+
+#controlBar {
+  align-items: center;
+  background:#4e4b61;
+  border:3px solid;
+  border-color:#69656d #343255 #343255 #69656d;
+  color:#9d9784;
+  font-weight:bold;
+  width:100%;
+}
+
+#controlBar button, .button {
+  color:inherit;
+  font-weight:bold;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background:#4E4B61;
+  outline:1px solid #1A1949;
+  border:1px solid;
+  font-size:10pt;
+  border-color:#69656D #343255 #343255 #69656D;
+}
+
+#commentsToggle { margin: 2px; min-width:60px; }
+
+.selectHolder select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: #9D9784;
+  outline: 1px solid #D2CA9C;
+  border:  1px solid #4E4B61;
+  margin:  2px;
+  padding-left: 1.3em;
+  min-width: 65px;
+  width:90%;
+  font-size:10pt;
+  color: #00003E;
+}
+
+.selectHolder { position:relative; }
+
+.selectHolder:before {
+  content:"";
+  width:0;
+  height:0;
+  border-left: 6px solid transparent;
+  border-right:6px solid transparent;
+  border-top:  6px solid #4E4B61;
+  position:absolute;
+  left:0.5em;
+  top:0.85em;
+  color:#000;
+  pointer-events:none;
+}
+
+#controlBar button:active, .button:active, .button.disabled {
+  border-color:#343255 #69656D #69656D #343255;
+}
+#controlBar input[type="checkbox"] {
+  box-sizing:border-box;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width:18px;
+  height:12px;
+  margin:4px;
+  outline:none;
+  display: inline-block;
+  vertical-align:middle;
+}
+
+
+#controlBar input[type="checkbox"]:not(:checked) {
+  background:#4E4B61;
+  box-shadow:
+    -0.5px -0.5px 0 0.5px #69656D,
+     0.5px  0.5px 0 0.5px #00003E,
+     0      0     0   1px #4E4B61,
+    -0.5px -0.5px 0 1.5px #00003E,
+     0.5px  0.5px 0 1.5px #69656D;
+}
+
+#controlBar input[type="checkbox"]:checked {
+  background:#00F080;
+  box-shadow:
+    -0.5px -0.5px 0 0.5px #007840,
+     0.5px  0.5px 0 0.5px #69656D,
+     0      0     0   1px #4E4B61,
+    -0.5px -0.5px 0 1.5px #00003E,
+     0.5px  0.5px 0 1.5px #69656D;
+}

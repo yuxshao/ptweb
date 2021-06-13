@@ -1,0 +1,268 @@
+#player p, #player canvas {
+  margin: 0; padding: 0; border: 0;
+  vertical-align:bottom;
+  image-rendering:pixelated;
+  image-rendering:optimizeSpeed;
+}
+
+.fullscreen {
+  position:fixed;
+  top:0; left: 0; right: 0; bottom: 0;
+}
+
+#drop {
+  display:flex;
+  position: relative;
+  padding:5px 15px;
+  margin:5px;
+  align-items: center;
+}
+
+#drop + input[type="file"] {
+  display:none;
+}
+
+output {
+  display: block;
+  width:100%;
+  float: left;
+  padding: 20px;
+  box-sizing: border-box;
+  margin: 10px 10px 10px 0px;
+}
+
+output > p, output > .comment {
+  margin-left: 3em;
+}
+
+.play > div {
+  width: 20px;
+  height: 20px;
+}
+
+.play > div::before {
+  position: absolute;
+  content: "";
+  transform: translate(3px, 2px);
+  display: block;
+  border-style: solid;
+  border-width: 8px 0 8px 15px;
+  border-color: transparent transparent transparent #00F080;
+}
+
+.play.disabled > div::before {
+  border-color: transparent transparent transparent #4E4B61;
+}
+
+.pause > div {
+  width: 20px;
+  height: 20px;
+}
+
+.pause > div::before {
+  position: absolute;
+  content: "";
+  transform: translate(4px, 1px);
+  display: block;
+  width: 4px;
+  height: 18px;
+  background: #D2CA9C;
+}
+
+.pause > div::after {
+  position: absolute;
+  content: "";
+  transform: translate(12px, 1px);
+  display: block;
+  width: 4px;
+  height: 18px;
+  background: #D2CA9C;
+}
+
+.playerButton, .stopButton {
+  padding: 4px 10px;
+  margin:5px 0;
+  align-items:center;
+}
+
+.pause.disabled > div::before, .pause.disabled > div::after, .stop.disabled > div::before {
+  background: #4E4B61;
+}
+
+.stop > div {
+  height:20px;
+  margin:auto;
+  align-items:center;
+}
+
+.stop > div::before {
+  content: "";
+  display: block;
+  width:  14px;
+  height: 14px;
+  background: #F00;
+}
+
+#volumeSlider {
+  background-color: rgba(0,0,0,0);
+  vertical-align: middle;
+  width: 100%;
+  min-width: 48px;
+  margin:0; padding:0;
+}
+
+/* a bunch of slider and progress styling */
+progress::-webkit-progress-value {
+  -webkit-appearance:none;
+  height:0.6em;
+  background-color:#00F080;
+}
+
+input[type=range]::-moz-range-progress {
+  -moz-appearance:none;
+  height:0.6em;
+  background-color:#00F080;
+}
+
+progress::-moz-progress-bar {
+  -moz-appearance:none;
+  height:0.5em;
+  background-color:#00F080;
+}
+
+input[type=range]::-moz-range-track {
+  -moz-appearance:none;
+  height:0.6em;
+  background-color:#00003E;
+  border:1px solid #00003E;
+}
+
+progress::-webkit-progress-bar {
+  -moz-appearance:none;
+  -webkit-appearance:none;
+  height:0.5em;
+  background-color:#00003E;
+  border:1px solid #00003E;
+}
+
+progress {
+  -moz-appearance:none;
+  -webkit-appearance:none;
+  height:0.6em;
+  box-sizing:border-box;
+  background-color:#00003E;
+  width:100%;
+  border:1px solid #00003E;
+}
+
+input[type=range] { -moz-appearance:none; }
+
+input[type=range]::-moz-range-thumb {
+  -moz-appearance:none;
+  border:1px solid;
+  border-color:#837E78 #00003E #00003E #837E78;
+  width:2px;
+  height:0.9em;
+  background:#4E4B61;
+}
+
+#controlButtons {
+  display:flex;
+  flex-direction:column;
+}
+
+#volumeBox { align-items:center; }
+
+#controls { margin: 6px 0 6px 5px; }
+#controls > div { margin: 0 5px; }
+
+.help {
+  margin:20px;
+  display:block;
+  float:left;
+  padding: 10px 0px;
+}
+
+#fixedContainer {
+  position:-webkit-sticky;
+  position: sticky;
+  top:0;
+  z-index:2;
+}
+
+#playerFixed, #playerBody { position:absolute; right:0; }
+
+#playerFixedMenu, #playerMenu {
+  position:-webkit-sticky;
+  position:sticky;
+  left:0;
+}
+
+#playerMenu          { z-index:1; resize:horizontal; }
+#playerFixedMenu     { z-index:3; }
+#controlBarContainer { z-index:4; }
+
+#displayContainer {
+  background:#000010;
+  flex-grow:1;
+}
+
+#player{
+  display:flex; flex-direction:column;
+  flex-wrap: nowrap;
+  font-size:10pt;
+  min-height:100%;
+  outline: 0;
+}
+
+#mooBackground {
+  flex-grow:1;
+  align-self:stretch;
+  background:url('./res/moo.png');
+}
+
+#controlBarContainer {
+  position:-webkit-sticky;
+  position:sticky;
+  flex-direction:column;
+  display:flex;
+  bottom:0;
+}
+
+#controlBarContainer div {
+  display:flex;
+}
+
+#controlBar {
+  align-items: center;
+  overflow-x: hidden;
+  word-break: keep-all;
+}
+
+#controls > span[title] {
+  text-decoration:dotted underline;
+}
+
+#logoBox {
+  padding:0 10px;
+  height:92px;
+  align-items:center;
+}
+
+a.infoBtn {
+  margin: 2px; padding: 3px; min-width:60px; flex-grow:1;
+}
+
+#controls .selectHolder select {
+  min-width: 65px;
+  width:90%;
+  font-size:10pt;
+}
+
+@media only screen and (max-width: 640px), only screen and (max-height: 480px) {
+  .playerDisplayOptions, #logoBox { display: none !important; }
+
+  #controlButtons { flex-direction:row; }
+  .playerButton { margin-right:5px; }
+  .stopButton   { margin-left: 5px; }
+}
