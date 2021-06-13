@@ -9,11 +9,18 @@ import os
 parser = argparse.ArgumentParser(description='Serve player webpage')
 parser.add_argument('--host', help='address to serve on', type=str, default='127.0.0.1', action='store')
 parser.add_argument('--port', help='port to serve on',    type=int, default=8080,        action='store')
+parser.add_argument("path",nargs="?")
 args = parser.parse_args()
 
 Handler = http.server.SimpleHTTPRequestHandler
 
-os.chdir(os.path.join(os.path.dirname(__file__), './build/'))
+if args.path is None:
+    path = os.path.join(os.path.dirname(__file__), './build/')
+else:
+    path = args.path
+
+print("serving: " + path)
+os.chdir(path)
 
 Handler.extensions_map={
         '.manifest': 'text/cache-manifest',
