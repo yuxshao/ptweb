@@ -6,7 +6,7 @@ const BUFFER_DURATION_DEFAULT = 0.3;
 
 function emptyStream(ctx) {
   return {
-    next: (duration) => ctx.createBuffer(1, 44100*duration, 44100),
+    next: (numSamples) => ctx.createBuffer(1, numSamples, 44100),
     release: () => null,
     reset: (seek_seconds) => null,
     setMute: (_1, _2) => null,
@@ -171,7 +171,7 @@ export let AudioPlayer = function (stream, ctx, buffer_duration=BUFFER_DURATION_
   this.setVolume = function (volume) {
     let ampl = Math.pow(65, volume-1);
     if (volume < 0.05) ampl *= volume / 0.05;
-    gainNode.gain.setValueAtTime(ampl * 2, ctx.currentTime);
+    gainNode.gain.setValueAtTime(ampl, ctx.currentTime);
   }
 
   // initialize player state
