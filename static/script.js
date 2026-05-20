@@ -209,7 +209,7 @@ const eventKindNames = [
 ];
 
 // Adapts ReadableStream<AudioData> from Pxtone.mjs to the stream interface
-// expected by AudioPlayer: { getSps, next, reset, release, setMute, getMute }
+// expected by AudioPlayer: { next, reset, release, setMute, getMute }
 function createPxtoneStream(pxtone, ctx, numberOfFrames) {
   const sps = pxtone.sampleRate;
   const ch  = pxtone.numberOfChannels;
@@ -225,8 +225,7 @@ function createPxtoneStream(pxtone, ctx, numberOfFrames) {
   startNew(0);
 
   return {
-    getSps: () => sps,
-    next: async function (_numSamples) {
+    next: async function () {
       const myGen = gen;
       const { done, value: audioData } = await reader.read();
       if (gen !== myGen || done) {
