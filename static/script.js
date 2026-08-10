@@ -3,9 +3,10 @@
 
 import {AudioPlayer} from "./play_audio.js"
 import {PlayerCanvas} from "./draw.js"
+import {Pxtone} from "./lib/Pxtone.mjs"
 
 // AudioContext
-const ctx = new (window.AudioContext || window.webkitAudioContext)();
+const ctx = new AudioContext();
 ctx.suspend();
 
 let currentAudioPlayer = new AudioPlayer(null, ctx);
@@ -26,12 +27,7 @@ myPlayerCanvas.audioSeek = currentAudioPlayer.seek;
 myPlayerCanvas.drawContinuously();
 
 // Pxtone initialize
-window.DECODER_URL = (window.DECODER_URL || "./pxtnDecoder.js");
-const pxtone = new Pxtone();
-pxtone.decoder = new Worker(window.DECODER_URL);
-
-// set decodePxtoneData to AudioContext
-ctx.decodePxtoneStream = pxtone.decodePxtoneStream.bind(pxtone, ctx);
+const pxtone = new Pxtone({ sampleRate: ctx.sampleRate });
 
 // DOM
 const wholePlayer     = document.querySelector("#player");
@@ -205,6 +201,68 @@ export let loadDrawOptions = async function (opt) {
   myPlayerCanvas.setDrawOptions(opt);
 }
 
+// Map numeric event kinds to the string names draw.js expects
+const eventKindNames = [
+  "NULL", "ON", "KEY", "PAN_VOLUME", "VELOCITY", "VOLUME", "PORTAMENT",
+  "BEATCLOCK", "BEATTEMPO", "BEATNUM", "REPEAT", "LAST", "VOICENO",
+  "GROUPNO", "TUNING", "PAN_TIME", "NUM"
+];
+
+// Adapts ReadableStream<AudioData> from Pxtone.mjs to the stream interface
+// expected by AudioPlayer: { next, reset, release, setMute, getMute }
+function createPxtoneStream(pxtone, ctx, numberOfFrames) {
+  const sps = pxtone.sampleRate;
+  const ch  = pxtone.numberOfChannels;
+  let gen    = 0;
+  let reader = null;
+
+  function startNew(startTime = 0) {
+    if (reader) reader.cancel().catch(() => {});
+    reader = pxtone.stream({
+      startTime, loop: true, unitMute: true, numberOfFrames,
+    }).getReader();
+  }
+  startNew(0);
+
+  return {
+    next: async function () {
+      const myGen = gen;
+      const { done, value: audioData } = await reader.read();
+      if (gen !== myGen || done) {
+        // Stale chunk after reset/release — return silence so the old nextChunk
+        // chain terminates cleanly without audible artifacts
+        if (audioData) audioData.close();
+        return ctx.createBuffer(ch, numberOfFrames, sps);
+      }
+      const buf = ctx.createBuffer(
+        audioData.numberOfChannels, audioData.numberOfFrames, audioData.sampleRate
+      );
+      for (let i = 0; i < audioData.numberOfChannels; i++) {
+        audioData.copyTo(buf.getChannelData(i), { planeIndex: i });
+      }
+      audioData.close();
+      return buf;
+    },
+    reset: function (positionInSamples) {
+      gen++;
+      startNew(positionInSamples / sps);
+    },
+    // async so AudioPlayer's `await stream.release()` waits for reader cancel,
+    // ensuring pxtone.clear() can be called safely afterwards
+    release: async function () {
+      gen++;
+      if (reader) { try { await reader.cancel(); } catch (_) {} reader = null; }
+    },
+    setMute: function (unitNum, isMute) {
+      if (unitNum < pxtone.units.length)
+        pxtone.units[unitNum].togglePlayed(!isMute);
+    },
+    getMute: function (unitNum) {
+      return !pxtone.units[unitNum].played;
+    },
+  };
+}
+
 // input Pxtone Collage file
 // file is ArrayBuffer
 export let loadFile = async function (file, filename, reset_draw, buffer_size) {
@@ -216,10 +274,33 @@ export let loadFile = async function (file, filename, reset_draw, buffer_size) {
   await currentAudioPlayer.release();
   updateButtonDisplay();
 
-  let {stream, master, units, evels, data} = await ctx.decodePxtoneStream(file);
+  pxtone.clear();
+  pxtone.read(new Uint8Array(file));
 
-  pxtnTitle.innerHTML = escapeHTML(data.title) || "no name";
-  pxtnComment.innerHTML = escapeHTML(data.comment).replace(/[\n\r]/g, "<br>") || "no comment";
+  pxtnTitle.innerHTML = escapeHTML(pxtone.name ?? "") || "no name";
+  pxtnComment.innerHTML = escapeHTML(pxtone.comment ?? "").replace(/[\n\r]/g, "<br>") || "no comment";
+
+  const sps = pxtone.sampleRate;
+  const numberOfFrames = Math.round((buffer_size ?? 0.3) * sps);
+  const stream = createPxtoneStream(pxtone, ctx, numberOfFrames);
+
+  // Convert pxtone.events to the format draw.js expects
+  const unitIndexMap = new Map(pxtone.units.map((u, i) => [u, i]));
+  const evels = pxtone.events.map(e => ({
+    kind:    eventKindNames[e.kind] ?? "NULL",
+    unit_no: unitIndexMap.get(e.unit) ?? 0,
+    value:   e.value,
+    clock:   e.tick,
+  }));
+  const units = pxtone.units.map(u => u.name);
+  const master = {
+    beatNum:    pxtone.beatsPerMeasure,
+    beatTempo:  pxtone.beatTempo,
+    beatClock:  pxtone.ticksPerBeat,
+    measNum:    pxtone.numberOfMeasures,
+    repeatMeas: pxtone.loopStartMeasure,
+    lastMeas:   pxtone.loopEndMeasure,
+  };
 
   currentAudioPlayer = new AudioPlayer(stream, ctx, buffer_size);
 

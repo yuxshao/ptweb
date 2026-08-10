@@ -1,6 +1,0 @@
-[submodule "PxtoneJS"]
-	path = PxtoneJS
-	url = git@github.com:yuxshao/PxtoneJS.git
-[submodule "pxtnDecoder"]
-	path = pxtnDecoder
-	url = git@github.com:yuxshao/pxtnDecoder.git
